@@ -3,18 +3,19 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: Hexo
+title: 1900zengyh
 subtitle:
 description:
-author: John Doe
-language:
+author: Yanhong Zeng
+email: zengyh@mail2.sysu.edu.cn
+language: en
 timezone:
 
 # URL
 ## If your site is put in a subdirectory, set url as 'http://yoursite.com/child' and root as '/child/'
-url: http://yoursite.com
+url: https://1900zyh.github.io/
 root: /
-permalink: :year/:month/:day/:title/
+permalink: :title/
 permalink_defaults:
 
 # Directory
@@ -26,6 +27,8 @@ category_dir: categories
 code_dir: downloads/code
 i18n_dir: :lang
 skip_render:
+  - about/*
+  - demos/*
 
 # Writing
 new_post_name: :title.md # File name of new posts
@@ -72,11 +75,11 @@ pagination_dir: page
 # Extensions
 ## Plugins: https://hexo.io/plugins/
 ## Themes: https://hexo.io/themes/
-theme: landscape
+theme: next
 
 # Deployment
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
   type: git
-  repo: https://github.com/1900zyh/1900zyh.github.io.git
+  repo: git@github.com:1900zyh/1900zyh.github.io.git
   brach: [master]

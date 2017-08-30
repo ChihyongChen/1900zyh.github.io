@@ -1,0 +1,191 @@
+% Copyright 2013 Christophe-Marie Duquesne <chmd@chmd.fr>
+% Copyright 2014 Mark Szepieniec <http://github.com/mszep>
+% 
+% ConText style for making a resume with pandoc. Inspired by moderncv.
+% 
+% This CSS document is delivered to you under the CC BY-SA 3.0 License.
+% https://creativecommons.org/licenses/by-sa/3.0/deed.en_US
+
+\startmode[*mkii]
+  \enableregime[utf-8]  
+  \setupcolors[state=start]
+\stopmode
+
+\setupcolor[hex]
+\definecolor[titlegrey][h=757575]
+\definecolor[sectioncolor][h=397249]
+\definecolor[rulecolor][h=9cb770]
+
+% Enable hyperlinks
+\setupinteraction[state=start, color=sectioncolor]
+
+\setuppapersize [A4][A4]
+\setuplayout    [width=middle, height=middle,
+                 backspace=20mm, cutspace=0mm,
+                 topspace=10mm, bottomspace=20mm,
+                 header=0mm, footer=0mm]
+
+%\setuppagenumbering[location={footer,center}]
+
+\setupbodyfont[11pt, helvetica]
+
+\setupwhitespace[medium]
+
+\setupblackrules[width=31mm, color=rulecolor]
+
+\setuphead[chapter]      [style=\tfd]
+\setuphead[section]      [style=\tfd\bf, color=titlegrey, align=middle]
+\setuphead[subsection]   [style=\tfb\bf, color=sectioncolor, align=right,
+                          before={\leavevmode\blackrule\hspace}]
+\setuphead[subsubsection][style=\bf]
+
+\setuphead[chapter, section, subsection, subsubsection][number=no]
+
+%\setupdescriptions[width=10mm]
+
+\definedescription
+  [description]
+  [headstyle=bold, style=normal,
+   location=hanging, width=18mm, distance=14mm, margin=0cm]
+
+\setupitemize[autointro, packed]    % prevent orphan list intro
+\setupitemize[indentnext=no]
+
+\setupfloat[figure][default={here,nonumber}]
+\setupfloat[table][default={here,nonumber}]
+
+\setuptables[textwidth=max, HL=none]
+
+\setupthinrules[width=15em] % width of horizontal rules
+
+\setupdelimitedtext
+  [blockquote]
+  [before={\setupalign[middle]},
+   indentnext=no,
+  ]
+
+
+\starttext
+
+\section[yanhong-zeng]{Yanhong Zeng}
+
+\thinrule
+
+\startblockquote
+\useURL[url1][https://1900zyh.github.io][][{\externalfigure[homepage.png]}]\from[url1]~~~~
+\useURL[url2][https://github.com/1900zyh/][][{\externalfigure[github.png]}]\from[url2]~~~~
+\useURL[url3][https://zengyh1900@gmail.com][][{\externalfigure[email.png]}]\from[url3]~~~~
+\useURL[url4][https://www.linkedin.com/in/yanhong-zeng-81393410b/][][{\externalfigure[linkedin.png]}]\from[url4]
+\stopblockquote
+
+\thinrule
+
+\subsection[education]{Education}
+
+\startdescription{2017-2022 (expected)}
+  {\bf Ph.D.~candidate, Computer Science}
+
+  Sun Yat-sen University (Guangzhou, China)\crlf
+   Supervisor:
+  \useURL[url5][https://www.researchgate.net/profile/Hongyang_Chao][][Prof.~Hongyang
+  Chao]\from[url5]
+\stopdescription
+
+\startdescription{2013-2017}
+  {\bf B.Sc., Software Engineering}
+
+  Sun Yat-sen University(Guangzhou, China)\crlf
+   Percentage - 95\letterpercent{}, ~~GPA - 3.91 out of 4.0
+\stopdescription
+
+\subsection[recent-news]{Recent News}
+
+\startitemize[packed]
+\item
+  Jul.5,2016~\lettertilde{} now: Research Intern in MSRA
+\stopitemize
+
+\subsection[research-interests]{Research Interests}
+
+Computer Vision, ~Computer Graphics
+
+\subsection[projects]{Projects}
+
+\startdescription{Sept. 2016 - Mar. 2017}
+  {\bf \useURL[url6][https://github.com/1900zyh/3D-Human-Body-Shape][][3D
+  Human Reshaping]\from[url6]}
+
+  \startitemize[packed]
+  \item
+    map anthropometric measurements to 3D human body shape, allow to
+    refine current body shape by controling sliders
+  \item
+    algorithm: vertex-based, deform-based, global mapping, local mapping
+  \item
+    python, scipy, numpy
+  \stopitemize
+\stopdescription
+
+\startdescription{Apr. 2016 - Jun. 2017}
+  {\bf \useURL[url7][https://github.com/1900zyh/simpleDL][][simpleDL]\from[url7]}
+
+  \startitemize[packed]
+  \item
+    a simple implementation of DNN including:RELULayer, SigmoidLayer,
+    LinearLayer, LossLayer, DataLayer, SimpleNet \ldots{}
+  \item
+    C++
+  \stopitemize
+\stopdescription
+
+\subsection[skills]{Skills}
+
+\startitemize[packed]
+\item
+  Human Languages:
+  \startitemize[packed]
+  \item
+    Chinese (native speaker), English\crlf
+  \stopitemize
+\item
+  Programing Languages:
+  \startitemize[packed]
+  \item
+    C, C++, Python, Java, web app, winPhone app, Android, Interpreter
+  \stopitemize
+\item
+  Tools:
+  \startitemize[packed]
+  \item
+    Linux, Git, Latex, Markdown, Ocatave, Matlab
+  \stopitemize
+\stopitemize
+
+\subsection[awards-honors]{Awards & Honors}
+
+\startitemize[packed]
+\item
+  National Undergraduate Scholarship, 2016.
+\item
+  Honorable Mention in Interdisciplinary Contest In Modeling Certificate
+  of Achievement, 2016
+\item
+  First Prise Sun Yat-sen Excellence Scholarship, 2014, 2015, 2016.
+\stopitemize
+
+\subsection[teaching-assistants]{Teaching Assistants}
+
+\startitemize[packed]
+\item
+  Introduction to Software Engineering, ~~~2015
+\stopitemize
+
+\thinrule
+
+\startblockquote
+\useURL[url8][https://1900zyh.github.io][][\hyphenatedurl{https://1900zyh.github.io}]\from[url8]
+• +86 18819431268 •\crlf
+Sun Yat-sen University - Guangzhou, China
+\stopblockquote
+
+\stoptext
