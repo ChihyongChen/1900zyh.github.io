@@ -242,13 +242,11 @@ vols表示目前3D slices中所有的有效的label。对于每一种label， �
         cut_num = cut_num + cut_step
 ```
 
+如下图就是一个处理后的示意图，将一些仪器背景形成的联通区域去掉了。
 
+![处理后](3danalysis_NO1_slice60.png)
 
-
-
-
-
-fill hole 的意思是。。。。这段处理的代码如下
+从上面这张图我们会发现，肺部中间有些洞被空挖掉了，但实际上我们希望提取ROI是整个肺部组织，而不是挖洞的。因此，我们再次进行联通区域分析，并且只将label和边角的一样的部分移除，其余的保留。这段处理的代码如下：
 ```python
 def fill_hole(bw):
     label = measure.label(~bw)
@@ -259,20 +257,14 @@ def fill_hole(bw):
     bw = ~np.in1d(label, list(bg_label)).reshape(label.shape)    
     return bw
 ```
-```python
-    bw = binarize_per_slice(img_array, spacing)
-    flag = 0
-    cut_num = 0
-    cut_step = 2
-    bw0 = np.copy(bw)
-    while flag == 0 and cut_num < bw.shape[0]:
-        bw = np.copy(bw0)
-        bw, flag = all_slice_analysis(bw, spacing, cut_num=cut_num, vol_limit=[0.68,7.5])
-        cut_num = cut_num + cut_step
-```
 
+这一步结束后得到的结果：
+![处理后](fillhole_NO1_slice60.png)
+可以看到有一些洞确实是被填上了。二维的角度看好像没什么变化，但实际上三维角度上看剩下的这些洞很可能是和外部空间相连接的，因此没有被填上。
 
 ## 单独生成左右肺mask
+
+这部分代码主要是，不断进行腐蚀操作直到最大的两个区域（左肺和右肺）有同样的体积。在腐蚀膨胀的过车给你中，分别为两片肺生成mask。如果mask增加的区域没有超过50%，就用convex hull来代替目前计算的mask。此外，需要将mask再向外膨胀10个物理坐标点，使得mask周围的一点空间可以被包进来。最后将左右肺mask的并集作为最终的mask。
 ```python
 def two_lung_only(bw, spacing, max_iter=22, max_ratio=4.8):    
     def extract_main(bw, cover=0.95):
@@ -345,9 +337,41 @@ def two_lung_only(bw, spacing, max_iter=22, max_ratio=4.8):
     bw = bw1 | bw2
     return bw1, bw2, bw
 ```
+以下对这部分的代码进行一一分析。
 
 
-## 统一的分辨率
+
+```python
+    def extract_main(bw, cover=0.95):
+        for i in range(bw.shape[0]):
+            current_slice = bw[i]
+            label = measure.label(current_slice)
+            properties = measure.regionprops(label)
+            properties.sort(key=lambda x: x.area, reverse=True)
+            area = [prop.area for prop in properties]
+            count = 0
+            sum = 0
+            while sum < np.sum(area)*cover:
+                sum = sum+area[count]
+                count = count+1
+            filter = np.zeros(current_slice.shape, dtype=bool)
+            for j in range(count):
+                bb = properties[j].bbox
+                filter[bb[0]:bb[2], bb[1]:bb[3]] = filter[bb[0]:bb[2], bb[1]:bb[3]] | properties[j].convex_image
+            bw[i] = bw[i] & filter
+           
+        label = measure.label(bw)
+        properties = measure.regionprops(label)
+        properties.sort(key=lambda x: x.area, reverse=True)
+        bw = label==properties[0].label
+        return bw
+```
+
+
+
+
+
+# 预处理：统一的分辨率
 
 
 
