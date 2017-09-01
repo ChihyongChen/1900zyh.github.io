@@ -9,7 +9,7 @@ tags:
 数据类型是mhd格式。
 在mhd格式中，可以根据HU值来区别空气、组织器官和骨头等等，从而将肺部组织提取出来。
 关于HU值的介绍可以看这篇[常见医疗扫描图像处理步骤](https://shartoo.github.io/medical_image_process/)。
-接下来，我将详细分析这个TOP1的代码。 
+接下来，我对这些代码进行了轻微的改动，然后分析每一步的作用。 
 <!--more-->
 
 
@@ -359,7 +359,6 @@ def two_lung_only(bw, spacing, max_iter=22, max_ratio=4.8):
                 bb = properties[j].bbox
                 filter[bb[0]:bb[2], bb[1]:bb[3]] = filter[bb[0]:bb[2], bb[1]:bb[3]] | properties[j].convex_image
             bw[i] = bw[i] & filter
-           
         label = measure.label(bw)
         properties = measure.regionprops(label)
         properties.sort(key=lambda x: x.area, reverse=True)
@@ -368,10 +367,111 @@ def two_lung_only(bw, spacing, max_iter=22, max_ratio=4.8):
 ```
 
 
+```python
+    def fill_2d_hole(bw):
+        for i in range(bw.shape[0]):
+            current_slice = bw[i]
+            label = measure.label(current_slice)
+            properties = measure.regionprops(label)
+            for prop in properties:
+                bb = prop.bbox
+                current_slice[bb[0]:bb[2], bb[1]:bb[3]] = current_slice[bb[0]:bb[2], bb[1]:bb[3]] | prop.filled_image
+            bw[i] = current_slice
+        return bw
+```
+
+
+```python
+    print("two lung only...")
+    found_flag = False
+    iter_count = 0
+    bw0 = np.copy(bw)
+    while not found_flag and iter_count < max_iter:
+        print(iter_count, max_iter)
+        label = measure.label(bw, connectivity=2)
+        properties = measure.regionprops(label)
+        properties.sort(key=lambda x: x.area, reverse=True)
+        if len(properties) > 1 and properties[0].area/properties[1].area < max_ratio:
+            found_flag = True
+            bw1 = label == properties[0].label
+            bw2 = label == properties[1].label
+        else:
+            bw = scipy.ndimage.binary_erosion(bw)
+            iter_count = iter_count + 1
+    
+    if found_flag:
+        d1 = scipy.ndimage.morphology.distance_transform_edt(bw1 == False, sampling=spacing)
+        d2 = scipy.ndimage.morphology.distance_transform_edt(bw2 == False, sampling=spacing)
+        bw1 = bw0 & (d1 < d2)
+        bw2 = bw0 & (d1 > d2)
+                
+        bw1 = extract_main(bw1)
+        bw2 = extract_main(bw2)
+    else:
+        print("***************not found***************")
+        bw1 = bw0
+        bw2 = np.zeros(bw.shape).astype('bool')
+    print("fill_2d_hole ing")
+    bw1 = fill_2d_hole(bw1)
+    bw2 = fill_2d_hole(bw2)
+    bw = bw1 | bw2
+    return bw1, bw2, bw
+```
 
 
 
 # 预处理：统一的分辨率
 
+```python
+def savenpy(im, m1, m2, spacing, annos, data_path):        
+    resolution = np.array([1,1,1])
+    label = annos[annos[:,0]==name]
+    label = label[:,[3,1,2,4]].astype('float')
+    
+    Mask = m1+m2
+    newshape = np.round(np.array(Mask.shape)*spacing/resolution)
+    xx,yy,zz= np.where(Mask)
+    box = np.array([[np.min(xx),np.max(xx)],[np.min(yy),np.max(yy)],[np.min(zz),np.max(zz)]])
+    box = box*np.expand_dims(spacing,1)/np.expand_dims(resolution,1)
+    box = np.floor(box).astype('int')
+    margin = 5
+    extendbox = np.vstack([np.max([[0,0,0],box[:,0]-margin],0),np.min([newshape,box[:,1]+2*margin],axis=0).T]).T
+    extendbox = extendbox.astype('int')
 
+    convex_mask = m1
+    dm1 = process_mask(m1)
+    dm2 = process_mask(m2)
+    dilatedMask = dm1+dm2
+    Mask = m1+m2
+    extramask = dilatedMask - Mask
+    bone_thresh = 210
+    pad_value = 170
+    im[np.isnan(im)]=-2000
+    sliceim = lumTrans(im)
+    sliceim = sliceim*dilatedMask+pad_value*(1-dilatedMask).astype('uint8')
+    bones = sliceim*extramask>bone_thresh
+    sliceim[bones] = pad_value
+    sliceim1,_ = resample(sliceim,spacing,resolution,order=1)
+    sliceim2 = sliceim1[extendbox[0,0]:extendbox[0,1],
+                extendbox[1,0]:extendbox[1,1],
+                extendbox[2,0]:extendbox[2,1]]
+    sliceim = sliceim2[np.newaxis,...]
+    np.save(os.path.join(prep_folder,name+'_clean.npy'),sliceim)
+
+    if len(label)==0:
+        label2 = np.array([[0,0,0,0]])
+    elif len(label[0])==0:
+        label2 = np.array([[0,0,0,0]])
+    elif label[0][0]==0:
+        label2 = np.array([[0,0,0,0]])
+    else:
+        haslabel = 1
+        label2 = np.copy(label).T
+        label2[:3] = label2[:3][[0,2,1]]
+        label2[:3] = label2[:3]*np.expand_dims(spacing,1)/np.expand_dims(resolution,1)
+        label2[3] = label2[3]*spacing[1]/resolution[1]
+        label2[:3] = label2[:3]-np.expand_dims(extendbox[:,0],1)
+        label2 = label2[:4].T
+    np.save(os.path.join(prep_folder,name+'_label.npy'),label2)
+```
 
