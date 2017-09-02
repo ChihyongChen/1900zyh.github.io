@@ -339,8 +339,50 @@ def two_lung_only(bw, spacing, max_iter=22, max_ratio=4.8):
 ```
 以下对这部分的代码进行一一分析。
 
+按照代码执行的逻辑顺序开始分析。这里有两个参数，一个是max_iter，设定的是迭代寻找肺部组织的次数，程序中用的是22。一个是max_ratio，最大面积不能超过第二面积的max_ratio(这里设为4.8)倍。找到符合面积要求的联通区域则停止迭代，否则就继续腐蚀操作直到找到符合要求的联通区域。这里可以看到，bw1是最大面积的label，bw2是第二大面积的label，从之后的代码也可以看出，这里的bw1和bw2其实指的就是左右肺。注意这里的联通区域是三维的。
+```python
+    found_flag = False
+    iter_count = 0
+    bw0 = np.copy(bw)
+    while not found_flag and iter_count < max_iter:
+        print(iter_count, max_iter)
+        label = measure.label(bw, connectivity=2)
+        properties = measure.regionprops(label)
+        properties.sort(key=lambda x: x.area, reverse=True)
+        if len(properties) > 1 and properties[0].area/properties[1].area < max_ratio:
+            found_flag = True
+            bw1 = label == properties[0].label
+            bw2 = label == properties[1].label
+        else:
+            bw = scipy.ndimage.binary_erosion(bw)
+            iter_count = iter_count + 1
+```
+bw1:
+![bw1](left_max_area.png)
+bw2:
+![bw2](right_second_area.png)
 
+上述步骤找到左右肺后继续下一步操作，如果没有找到左右肺就直接将原本的bw作为bw1,而bw2为空，二者并集为最终的mask。distance_transform_edt的意思是非零点到背景点（零值点）的最近距离。这一步实际上是将左右肺继续做明确的分割，然后再进行主要成分提取。最后还是进行一些肺部内部区域的填充.
+```python  
+    if found_flag:
+        d1 = scipy.ndimage.morphology.distance_transform_edt(bw1 == False, sampling=spacing)
+        d2 = scipy.ndimage.morphology.distance_transform_edt(bw2 == False, sampling=spacing)
+        bw1 = bw0 & (d1 < d2)
+        bw2 = bw0 & (d1 > d2)
+        bw1 = extract_main(bw1)
+        bw2 = extract_main(bw2)
+    else:
+        print("***************not found***************")
+        bw1 = bw0
+        bw2 = np.zeros(bw.shape).astype('bool')
+    print("fill_2d_hole ing")
+    bw1 = fill_2d_hole(bw1)
+    bw2 = fill_2d_hole(bw2)
+    bw = bw1 | bw2
+    return bw1, bw2, bw
+```
 
+上述中的extract_main函数分析如下。首先还是进行联通区域分析，选择占当前slice 95% 面积的区域，并计算他们的凸包convex_image的并集。通过这种方式可以将肺部的主要面积给截取出来。但最后返回的bw是面积最大的那一个。
 ```python
     def extract_main(bw, cover=0.95):
         for i in range(bw.shape[0]):
@@ -366,7 +408,7 @@ def two_lung_only(bw, spacing, max_iter=22, max_ratio=4.8):
         return bw
 ```
 
-
+fill_2d_hole主要是利用联通区域的filled_image进行处理。
 ```python
     def fill_2d_hole(bw):
         for i in range(bw.shape[0]):
@@ -380,48 +422,16 @@ def two_lung_only(bw, spacing, max_iter=22, max_ratio=4.8):
         return bw
 ```
 
-
-```python
-    print("two lung only...")
-    found_flag = False
-    iter_count = 0
-    bw0 = np.copy(bw)
-    while not found_flag and iter_count < max_iter:
-        print(iter_count, max_iter)
-        label = measure.label(bw, connectivity=2)
-        properties = measure.regionprops(label)
-        properties.sort(key=lambda x: x.area, reverse=True)
-        if len(properties) > 1 and properties[0].area/properties[1].area < max_ratio:
-            found_flag = True
-            bw1 = label == properties[0].label
-            bw2 = label == properties[1].label
-        else:
-            bw = scipy.ndimage.binary_erosion(bw)
-            iter_count = iter_count + 1
-    
-    if found_flag:
-        d1 = scipy.ndimage.morphology.distance_transform_edt(bw1 == False, sampling=spacing)
-        d2 = scipy.ndimage.morphology.distance_transform_edt(bw2 == False, sampling=spacing)
-        bw1 = bw0 & (d1 < d2)
-        bw2 = bw0 & (d1 > d2)
-                
-        bw1 = extract_main(bw1)
-        bw2 = extract_main(bw2)
-    else:
-        print("***************not found***************")
-        bw1 = bw0
-        bw2 = np.zeros(bw.shape).astype('bool')
-    print("fill_2d_hole ing")
-    bw1 = fill_2d_hole(bw1)
-    bw2 = fill_2d_hole(bw2)
-    bw = bw1 | bw2
-    return bw1, bw2, bw
-```
+该过程处理后的一个最终结果：
+bw1:
+![bw1](bw1_before_extract.png)
+bw2:
+![bw2](bw2_before_extract.png)
+bw:
+![bw](bw_before_extract.png)
 
 
-
-# 预处理：统一的分辨率
-
+# 预处理：Apply Mask
 ```python
 def savenpy(im, m1, m2, spacing, annos, data_path):        
     resolution = np.array([1,1,1])
