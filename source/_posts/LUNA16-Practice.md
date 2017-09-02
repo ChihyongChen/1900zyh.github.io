@@ -264,7 +264,7 @@ def fill_hole(bw):
 
 ## 单独生成左右肺mask
 
-这部分代码主要是，不断进行腐蚀操作直到最大的两个区域（左肺和右肺）有同样的体积。在腐蚀膨胀的过车给你中，分别为两片肺生成mask。如果mask增加的区域没有超过50%，就用convex hull来代替目前计算的mask。此外，需要将mask再向外膨胀10个物理坐标点，使得mask周围的一点空间可以被包进来。最后将左右肺mask的并集作为最终的mask。
+这部分代码主要是，不断进行腐蚀操作直到最大的两个区域（左肺和右肺）有同样的体积。在腐蚀膨胀的过程中，分别为两片肺生成mask。
 ```python
 def two_lung_only(bw, spacing, max_iter=22, max_ratio=4.8):    
     def extract_main(bw, cover=0.95):
@@ -421,7 +421,6 @@ fill_2d_hole主要是利用联通区域的filled_image进行处理。
             bw[i] = current_slice
         return bw
 ```
-
 该过程处理后的一个最终结果：
 bw1:
 ![bw1](bw1_before_extract.png)
@@ -432,12 +431,10 @@ bw:
 
 
 # 预处理：Apply Mask
+
+这一步首先先计算出物理世界中的ROI的外边框。然后将mask再分别向两边膨胀5个物理坐标点，使得mask周围的一点空间可以被包进来。
 ```python
-def savenpy(im, m1, m2, spacing, annos, data_path):        
     resolution = np.array([1,1,1])
-    label = annos[annos[:,0]==name]
-    label = label[:,[3,1,2,4]].astype('float')
-    
     Mask = m1+m2
     newshape = np.round(np.array(Mask.shape)*spacing/resolution)
     xx,yy,zz= np.where(Mask)
@@ -447,41 +444,22 @@ def savenpy(im, m1, m2, spacing, annos, data_path):
     margin = 5
     extendbox = np.vstack([np.max([[0,0,0],box[:,0]-margin],0),np.min([newshape,box[:,1]+2*margin],axis=0).T]).T
     extendbox = extendbox.astype('int')
+````
 
-    convex_mask = m1
-    dm1 = process_mask(m1)
-    dm2 = process_mask(m2)
-    dilatedMask = dm1+dm2
-    Mask = m1+m2
-    extramask = dilatedMask - Mask
-    bone_thresh = 210
-    pad_value = 170
-    im[np.isnan(im)]=-2000
-    sliceim = lumTrans(im)
-    sliceim = sliceim*dilatedMask+pad_value*(1-dilatedMask).astype('uint8')
-    bones = sliceim*extramask>bone_thresh
-    sliceim[bones] = pad_value
-    sliceim1,_ = resample(sliceim,spacing,resolution,order=1)
-    sliceim2 = sliceim1[extendbox[0,0]:extendbox[0,1],
-                extendbox[1,0]:extendbox[1,1],
-                extendbox[2,0]:extendbox[2,1]]
-    sliceim = sliceim2[np.newaxis,...]
-    np.save(os.path.join(prep_folder,name+'_clean.npy'),sliceim)
-
-    if len(label)==0:
-        label2 = np.array([[0,0,0,0]])
-    elif len(label[0])==0:
-        label2 = np.array([[0,0,0,0]])
-    elif label[0][0]==0:
-        label2 = np.array([[0,0,0,0]])
-    else:
-        haslabel = 1
-        label2 = np.copy(label).T
-        label2[:3] = label2[:3][[0,2,1]]
-        label2[:3] = label2[:3]*np.expand_dims(spacing,1)/np.expand_dims(resolution,1)
-        label2[3] = label2[3]*spacing[1]/resolution[1]
-        label2[:3] = label2[:3]-np.expand_dims(extendbox[:,0],1)
-        label2 = label2[:4].T
-    np.save(os.path.join(prep_folder,name+'_label.npy'),label2)
+如果mask增加的区域没有超过50%，就用convex hull来代替目前计算的mask。
+```python
+def process_mask(mask):
+    convex_mask = np.copy(mask)
+    for i_layer in range(convex_mask.shape[0]):
+        mask1  = np.ascontiguousarray(mask[i_layer])
+        if np.sum(mask1)>0:
+            mask2 = convex_hull_image(mask1)
+            if np.sum(mask2)>1.5*np.sum(mask1):
+                mask2 = mask1
+        else:
+            mask2 = mask1
+        convex_mask[i_layer] = mask2
+    struct = generate_binary_structure(3,1)  
+    dilatedMask = binary_dilation(convex_mask,structure=struct,iterations=10) 
+    return dilatedMask
 ```
-
