@@ -423,11 +423,11 @@ fill_2d_hole主要是利用联通区域的filled_image进行处理。
 ```
 该过程处理后的一个最终结果：
 bw1:
-![bw1](bw1_before_extract.png)
+![bw1](bw1_after_extract_masks.png)
 bw2:
-![bw2](bw2_before_extract.png)
+![bw2](bw2_after_extract_masks.png)
 bw:
-![bw](bw_before_extract.png)
+![bw](bw_after_extract_masks.png)
 
 
 # 预处理：Apply Mask
@@ -512,7 +512,7 @@ def resample(imgs, spacing, new_spacing,order=2):
         raise ValueError('wrong shape')
 ```
 
-这部分代码就是将HU值转化成灰度值（从[-1200,600]到[0，255]），并应用上上一步求的mask，把非uROI的部分用170填充。除此之外，由腐蚀操作多出来的面积如果灰度值大于210，被认为是骨头的部分，也被填充成170.通过resample统一到一样的分辨率后，再用计算到的extendbox将ROI截取出来。
+这部分代码就是将HU值转化成灰度值（从[-1200,600]到[0，255]），并应用上上一步求的mask，把非uROI的部分用170填充。除此之外，由腐蚀操作多出来的面积如果灰度值大于210，被认为是骨头的部分，也被填充成170.通过resample统一到一样的分辨率后，再用计算到的extendbox将ROI截取出来, 这里通过extendbox截取的时候是x\y\z三个方向上都有进行截取。
 ```python
     bone_thresh = 210
     pad_value = 170
@@ -528,6 +528,40 @@ def resample(imgs, spacing, new_spacing,order=2):
     sliceim = sliceim2[np.newaxis,...]
 ```
 灰度值转化且统一分辨率后裁剪前：
-![origin](origin.jpg)
+![origin](origin.png)
 裁剪后：
 ![cut](cut.jpg)
+由于经过裁剪，总的slice数量不一样了，因此这两张图不是一一对应的。
+
+
+# 预处理：处理annatations
+上面一个步骤完成后，图像也就处理好了，但还需要把这些数据的label给对应到新的位置上来。
+这部分函数是将世界坐标（ground truth的坐标）映射到图像的voxel坐标系上。
+```python
+def worldToVoxelCoord(worldCoord, origin, spacing):
+    stretchedVoxelCoord = np.absolute(worldCoord - origin)
+    voxelCoord = stretchedVoxelCoord / spacing
+    return voxelCoord
+```
+
+由于slice是经过缩放、裁剪的，因此labe也需要经过缩放裁剪。
+```python
+    this_annos = np.copy(annos[annos[:,0]==case_name])
+    label = []
+    if len(this_annos) > 0:
+        for c in this_annos:
+            pos = worldToVoxelCoord(c[1:4][::-1], origin=origin, spacing=spacing)
+            label.append(np.concatenate([pos,[c[4]/spacing[1]]]))
+    label = np.array(label)
+    
+    if len(label) == 0:
+        label2 = np.array([0,0,0,0])
+    else:
+        label2 = np.copy(label)
+        label2[:3] = label2[:3]*np.expand_dims(spacing,1)/np.expand_dims(resolution,1)
+        label2[3] = label2[3]*spacing[1]/resolution[1]
+        label2[:3] = label2[:3]-np.expand_dims(extendbox[:,0],1)
+        label2 = label2[:4].T
+    print(label2)
+    np.save(os.path.join(ans_path,case_name+'_label.npy'),label2)
+```
