@@ -565,3 +565,7 @@ def worldToVoxelCoord(worldCoord, origin, spacing):
     print(label2)
     np.save(os.path.join(ans_path,case_name+'_label.npy'),label2)
 ```
+裁剪前的结节位置：
+![origin_label](origin_label.png)
+裁剪后的结节位置：
+![cut_label](cut_label.png)
