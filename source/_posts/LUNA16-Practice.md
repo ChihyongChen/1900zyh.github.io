@@ -1,5 +1,5 @@
 ---
-title: LUNA16_Practice
+title: Practiec | LUNA16之数据预处理
 date: 2017-08-14 21:21:51
 tags:
 ---
@@ -446,20 +446,88 @@ bw:
     extendbox = extendbox.astype('int')
 ````
 
-如果mask增加的区域没有超过50%，就用convex hull来代替目前计算的mask。
+。如果凸包mask相比原mask增加的区域超过了50%，则用原mask继续计算，否则就用凸包图像convex hull来代替目前计算的mask。最后返回腐蚀操作的dilatedMask。
 ```python
 def process_mask(mask):
     convex_mask = np.copy(mask)
     for i_layer in range(convex_mask.shape[0]):
+        # ascontiguousarray函数是将数组以连续数组的形式返回
         mask1  = np.ascontiguousarray(mask[i_layer])
         if np.sum(mask1)>0:
+            # mask2是当前mask的凸包图像
             mask2 = convex_hull_image(mask1)
+            # 如果凸包图像比原mask大了50%
             if np.sum(mask2)>1.5*np.sum(mask1):
                 mask2 = mask1
         else:
             mask2 = mask1
         convex_mask[i_layer] = mask2
+        # connectity为1
     struct = generate_binary_structure(3,1)  
     dilatedMask = binary_dilation(convex_mask,structure=struct,iterations=10) 
     return dilatedMask
 ```
+
+这段代码就是利用process_mask操作来对mask进行凸包处理。
+```python
+    dm1 = process_mask(m1)
+    dm2 = process_mask(m2)
+    dilatedMask = dm1+dm2
+    Mask = m1+m2
+    extramask = dilatedMask - Mask
+```
+以下这张图就分别是dilated_mask, mask,extramask。
+![dilated_mask_extra](dilated_mask_extra.png)
+
+simpleitk读取mhd的image_array数值是HU的数值，在送进网络进行判断前，我们需要将其转化成[0,255]的灰度值。HU有效值在[-1200,600]之间。整个映射变化只是一个简单的线性映射。
+```python
+def lumTrans(img):
+    lungwin = np.array([-1200.,600.])
+    newimg = (img-lungwin[0])/(lungwin[1]-lungwin[0])
+    newimg[newimg<0]=0
+    newimg[newimg>1]=1
+    newimg = (newimg*255).astype('uint8')
+    return newimg
+```
+
+由于不同的病人之间的spacing（单位：mpp,毫米/像素）是不同的，这意味着物理世界中同样大小的面积在图像中表示不一样。所以我们认为应该要统一spacing。
+```python
+def resample(imgs, spacing, new_spacing,order=2):
+    if len(imgs.shape)==3:
+        new_shape = np.round(imgs.shape * spacing / new_spacing)
+        true_spacing = spacing * imgs.shape / new_shape
+        resize_factor = new_shape / imgs.shape
+        imgs = zoom(imgs, resize_factor, mode = 'nearest',order=order)
+        return imgs, true_spacing
+    elif len(imgs.shape)==4:
+        n = imgs.shape[-1]
+        newimg = []
+        for i in range(n):
+            slice = imgs[:,:,:,i]
+            newslice,true_spacing = resample(slice,spacing,new_spacing)
+            newimg.append(newslice)
+        newimg=np.transpose(np.array(newimg),[1,2,3,0])
+        return newimg,true_spacing
+    else:
+        raise ValueError('wrong shape')
+```
+
+这部分代码就是将HU值转化成灰度值（从[-1200,600]到[0，255]），并应用上上一步求的mask，把非uROI的部分用170填充。除此之外，由腐蚀操作多出来的面积如果灰度值大于210，被认为是骨头的部分，也被填充成170.通过resample统一到一样的分辨率后，再用计算到的extendbox将ROI截取出来。
+```python
+    bone_thresh = 210
+    pad_value = 170
+    im[np.isnan(im)]=-2000
+    sliceim = lumTrans(im)
+    sliceim = sliceim*dilatedMask+pad_value*(1-dilatedMask).astype('uint8')
+    bones = sliceim*extramask>bone_thresh
+    sliceim[bones] = pad_value
+    sliceim1,_ = resample(sliceim,spacing,resolution,order=1)
+    sliceim2 = sliceim1[extendbox[0,0]:extendbox[0,1],
+                extendbox[1,0]:extendbox[1,1],
+                extendbox[2,0]:extendbox[2,1]]
+    sliceim = sliceim2[np.newaxis,...]
+```
+灰度值转化且统一分辨率后裁剪前：
+![origin](origin.jpg)
+裁剪后：
+![cut](cut.jpg)
