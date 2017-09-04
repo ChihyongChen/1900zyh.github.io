@@ -569,3 +569,7 @@ def worldToVoxelCoord(worldCoord, origin, spacing):
 ![origin_label](origin_label.png)
 裁剪后的结节位置：
 ![cut_label](cut_label.png)
+
+
+
+预处理部分就先介绍到这里，下一步将分析如何将数据送入网络。（这其中就涉及到了数据增强等操作啦。）
