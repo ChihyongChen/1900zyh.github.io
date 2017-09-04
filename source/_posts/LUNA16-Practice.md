@@ -1,5 +1,5 @@
 ---
-title: Practiec | LUNA16之数据预处理
+title: Practiec | LUNA16：数据预处理
 date: 2017-08-14 21:21:51
 tags:
 ---
