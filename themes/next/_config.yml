@@ -53,7 +53,7 @@ menu:
   home: / || home
   categories: /categories/ || th
   about: /about/resume.html || user
-  Recent: /recent/index.html || heartbeat
+  Recent: /Recent/index.html || heartbeat
   # about: /about/ || user
   # tags: /tags/ || tags
   # archives: /archives/ || archive
@@ -86,10 +86,10 @@ scheme: Mist
 # Key is the link label showing to end users.
 # Value before `||` delimeter is the target permalink.
 # Value after `||` delimeter is the name of FontAwesome icon. If icon (with or without delimeter) is not specified, globe icon will be loaded.
-#social:
-  #GitHub: https://github.com/yourname || github
-  #E-Mail: mailto:yourname@gmail.com || envelope
-  #Google: https://plus.google.com/yourname || google
+# social:
+#   GitHub: https://github.com/yourname || github
+#   E-Mail: mailto:yourname@gmail.com || envelope
+#   Google: https://plus.google.com/yourname || google
   #Twitter: https://twitter.com/yourname || twitter
   #FB Page: https://www.facebook.com/yourname || facebook
   #VK Group: https://vk.com/yourname || vk
@@ -219,7 +219,7 @@ post_copyright:
 # ---------------------------------------------------------------
 
 # Reduce padding / margin indents on devices with narrow width.
-mobile_layout_economy: false
+mobile_layout_economy: true
 
 # Android Chrome header panel color ($black-deep).
 android_chrome_color: "#222"
