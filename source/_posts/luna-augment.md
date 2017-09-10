@@ -102,7 +102,6 @@ class LabelMapping(object):
             self.th_pos = config['th_pos_val']
 ```
 
-
 在pytorch中，继承`DataSet`的子类，都需要重写`__len__()`函数和`__getitem__()`函数.
 前者是为了支持对数据集大小的查询,后者是为了支持索引.
 由于在训练的过程中，数据集中的70%是包含有结节的部分,也就是ground truth的长度,而另外30%是从空白地方截取出来的,因此整个数据集的大小就是`len(self.bboxes)/(1-self.r_rand)`.
@@ -164,15 +163,7 @@ def __getitem__(self, idx, split=None):
             return torch.from_numpy(imgs.astype(np.float32)), bboxes, torch.from_numpy(coord2.astype(np.float32)), np.array(nzhw)
 ```
 
-
-
-
-
-
-
-
-
-
+## 裁剪数据
 target表示的是当前索引的结节的位置信息,bboxes表示的是当前索引的图像的所有的结节位置信息.
 scaleRange是计算出的一个将图像随机缩放的一个区间.
 在预处理部分将数据统一到一个物理分辨率上,但在训练网络的时候,为了增强数据,又将数据在[0.75, 1.25]的范围内进行缩放处理.
@@ -252,8 +243,10 @@ class Crop():
         return crop, target, bboxes, coord
 ```
 在这里,crop是[1, 128, 128, 128]的图像,target是当前索引的位置信息,bboxes是当前图像的位置信息.
+如下图就是裁剪之后的[128, 128]的一个结果:
+![crop_result](crop_128_1.png)
 
-
+这部分数据增强的操作主要有:旋转,翻转,以及x,y,z坐标轴的调换.paper中说再多的操作对效果提升没有显著的帮助,因此只使用了翻转.
 ```python
 def augment(sample, target, bboxes, coord, ifflip = True, ifrotate=True, ifswap = True):
     if ifrotate:
@@ -276,14 +269,6 @@ def augment(sample, target, bboxes, coord, ifflip = True, ifrotate=True, ifswap 
                 counter += 1
                 if counter ==3:
                     break
-    if ifswap:
-        if sample.shape[1]==sample.shape[2] and sample.shape[1]==sample.shape[3]:
-            axisorder = np.random.permutation(3)
-            sample = np.transpose(sample,np.concatenate([[0],axisorder+1]))
-            coord = np.transpose(coord,np.concatenate([[0],axisorder+1]))
-            target[:3] = target[:3][axisorder]
-            bboxes[:,:3] = bboxes[:,:3][:,axisorder]
-            
     if ifflip:
 #         flipid = np.array([np.random.randint(2),np.random.randint(2),np.random.randint(2)])*2-1
         flipid = np.array([1,np.random.randint(2),np.random.randint(2)])*2-1
@@ -292,14 +277,21 @@ def augment(sample, target, bboxes, coord, ifflip = True, ifrotate=True, ifswap 
         for ax in range(3):
             if flipid[ax]==-1:
                 target[ax] = np.array(sample.shape[ax+1])-target[ax]
-                bboxes[:,ax]= np.array(sample.shape[ax+1])-bboxes[:,ax]
+                bboxes[:,ax]= np.array(sample.shape[ax+1])-bboxes[:,ax]  
+    if ifswap:
+        if sample.shape[1]==sample.shape[2] and sample.shape[1]==sample.shape[3]:
+            axisorder = np.random.permutation(3)
+            sample = np.transpose(sample,np.concatenate([[0],axisorder+1]))
+            coord = np.transpose(coord,np.concatenate([[0],axisorder+1]))
+            target[:3] = target[:3][axisorder]
+            bboxes[:,:3] = bboxes[:,:3][:,axisorder]
     return sample, target, bboxes, coord 
-
 ```
+处理的效果如下图所示:
+![augment_results](augment.png)
 
 
-
-当调用LabelMapping的时候。
+当调用LabelMapping是为了将ground_truth与图像一一对应起来.
 ```python
 class LabelMapping(object):    
     def __call__(self, input_size, target, bboxes):
@@ -494,7 +486,6 @@ combine操作
 
 
 
-# 数据增强
 
 
 # 加载数据集
