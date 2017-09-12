@@ -1,7 +1,7 @@
 ---
-title: Practice | LUNA16：训练网络
+title: Practice | LUNA16：网络数据的准备
 date: 2017-09-04 21:20:55
-tags: CT
+categories: CT
 ---
 
 经过上一篇blog的介绍，我们只是从原始的mhd数据进行ROI处理，并统一分辨率。
@@ -246,6 +246,7 @@ class Crop():
 如下图就是裁剪之后的[128, 128]的一个结果:
 ![crop_result](crop_128_1.png)
 
+# 数据增强
 这部分数据增强的操作主要有:旋转,翻转,以及x,y,z坐标轴的调换.paper中说再多的操作对效果提升没有显著的帮助,因此只使用了翻转.
 ```python
 def augment(sample, target, bboxes, coord, ifflip = True, ifrotate=True, ifswap = True):
@@ -291,7 +292,8 @@ def augment(sample, target, bboxes, coord, ifflip = True, ifrotate=True, ifswap 
 ![augment_results](augment.png)
 
 
-当调用LabelMapping是为了将ground_truth与图像一一对应起来.
+# 正负样本平衡
+label mapping实现的是一种online hard negative mining的技术.目的是为了改善数据集中正负样本比例不均衡的问题.
 ```python
 class LabelMapping(object):    
     def __call__(self, input_size, target, bboxes):
@@ -359,10 +361,63 @@ class LabelMapping(object):
         return label 
 ```
 
+label mapping的实现方法具体是通过将当前loss下难以筛选辨识的false positive加入到训练数据中.
+```python
+def select_samples(bbox, anchor, th, oz, oh, ow):
+    z, h, w, d = bbox
+    max_overlap = min(d, anchor)
+    min_overlap = np.power(max(d, anchor), 3) * th / max_overlap / max_overlap
+    if min_overlap > max_overlap:
+        return np.zeros((0,), np.int64), np.zeros((0,), np.int64), np.zeros((0,), np.int64)
+    else:
+        s = z - 0.5 * np.abs(d - anchor) - (max_overlap - min_overlap)
+        e = z + 0.5 * np.abs(d - anchor) + (max_overlap - min_overlap)
+        mz = np.logical_and(oz >= s, oz <= e)
+        iz = np.where(mz)[0]
+        s = h - 0.5 * np.abs(d - anchor) - (max_overlap - min_overlap)
+        e = h + 0.5 * np.abs(d - anchor) + (max_overlap - min_overlap)
+        mh = np.logical_and(oh >= s, oh <= e)
+        ih = np.where(mh)[0]
+        s = w - 0.5 * np.abs(d - anchor) - (max_overlap - min_overlap)
+        e = w + 0.5 * np.abs(d - anchor) + (max_overlap - min_overlap)
+        mw = np.logical_and(ow >= s, ow <= e)
+        iw = np.where(mw)[0]
 
+        if len(iz) == 0 or len(ih) == 0 or len(iw) == 0:
+            return np.zeros((0,), np.int64), np.zeros((0,), np.int64), np.zeros((0,), np.int64)
+        
+        lz, lh, lw = len(iz), len(ih), len(iw)
+        iz = iz.reshape((-1, 1, 1))
+        ih = ih.reshape((1, -1, 1))
+        iw = iw.reshape((1, 1, -1))
+        iz = np.tile(iz, (1, lh, lw)).reshape((-1))
+        ih = np.tile(ih, (lz, 1, lw)).reshape((-1))
+        iw = np.tile(iw, (lz, lh, 1)).reshape((-1))
+        centers = np.concatenate([
+            oz[iz].reshape((-1, 1)),
+            oh[ih].reshape((-1, 1)),
+            ow[iw].reshape((-1, 1))], axis = 1)
+        r0 = anchor / 2
+        s0 = centers - r0
+        e0 = centers + r0
+        r1 = d / 2
+        s1 = bbox[:3] - r1
+        s1 = s1.reshape((1, -1))
+        e1 = bbox[:3] + r1
+        e1 = e1.reshape((1, -1))
+        
+        overlap = np.maximum(0, np.minimum(e0, e1) - np.maximum(s0, s1))
+        intersection = overlap[:, 0] * overlap[:, 1] * overlap[:, 2]
+        union = anchor * anchor * anchor + d * d * d - intersection
+        iou = intersection / union
+        mask = iou >= th
+        iz = iz[mask]
+        ih = ih[mask]
+        iw = iw[mask]
+        return iz, ih, iw
+```
 
-
-当处于测试阶段时,DataBowl3Detector需要对数据
+当处于测试阶段时,DataBowl3Detector需要将原数据进行切割.
 ```python
     imgs = np.load(self.filenames[idx])
     bboxes = self.sample_bboxes[idx]
@@ -382,11 +437,6 @@ class LabelMapping(object):
                                            margin = self.split_comber.margin/self.stride)
 
 ```
-
-
-
-
-
 
 SplitComb类主要有两个函数。split操作对数据进行padding，以及z\x\y轴上的处理。
 ```python
@@ -429,10 +479,7 @@ class SplitComb():
         return splits,nzhw
 ```
 
-
-
-
-combine操作
+切割结束后,需要结合所有的patch计算出最终的预测结果.
 ```python
     def combine(self, output, nzhw = None, side_len=None, stride=None, margin=None):
         
@@ -477,31 +524,5 @@ combine操作
                     idx += 1
         return output 
 ```
-
-
-
-
-
-
-
-
-
-
-
-# 加载数据集
-
-
-
-
-
-
-
-# 训练网络
-
-
-
-
-# 实验结果
-
 
 
