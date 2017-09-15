@@ -1,7 +1,7 @@
 ---
 title: luna_train
 date: 2017-09-12 20:41:19
-categories: CT, Medical Image Analysis
+categories: CT
 ---
 
 在对数据经过预处理,以及网络数据的准备之后,本篇将开始讨论网络训练方面的工作.
