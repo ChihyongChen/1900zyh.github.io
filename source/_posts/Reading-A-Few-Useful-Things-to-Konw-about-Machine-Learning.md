@@ -1,7 +1,7 @@
 ---
 title: Paper | 一些关于机器学习你需要知道的事
 date: 2017-08-04 23:18:54
-tags:
+categories: Paper Reading
 ---
 
 

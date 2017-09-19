@@ -5,10 +5,13 @@ tags: CT, Research
 ---
 
 
-本篇研究的是[Data Science Bowl 2017 TOP1](https://github.com/lfz/DSB2017)的代码。
-数据类型是mhd格式。
+本篇研究的是[Data Science Bowl 2017 TOP1](https://github.com/lfz/DSB2017)的预处理。
+针对肺部CT扫描影像的预处理(mhd格式)的教程还有[DSB2017的教程](https://www.kaggle.com/gzuidhof/full-preprocessing-tutorial)。
+相比后者,前者更加复杂,不仅从2D上进行提取,还从3D上利用体积面积来处理.而后者比较简单,对单张图片一个个进行分析,一般利用中心,HU阈值来直接取联通区域面积最大的区域,效果也还不错.
+考虑到希望从3D的角度也能尽可能去掉无关的因素,所以我们研究更加复杂的前者.
 在mhd格式中，可以根据HU值来区别空气、组织器官和骨头等等，从而将肺部组织提取出来。
 关于HU值的介绍可以看这篇[常见医疗扫描图像处理步骤](https://shartoo.github.io/medical_image_process/)。
+
 接下来，我对这些代码进行了轻微的改动，然后分析每一步的作用。 
 <!--more-->
 
