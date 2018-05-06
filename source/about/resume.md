@@ -25,14 +25,16 @@ Education
 
 Recent News
 ---------------- 
-- Jul.5,2016\ ~ now: Research Intern in MSRA 
+- Jul.5,2016\ ~ June 2017: Research Intern in MSRA 
 
 Research Interests
 --------------
-Computer Vision, \ Computer Graphics
+Computer Vision, \ Medical Image Analysis  
 
-<!-- Publications
------------------- -->
+
+Publications
+--------------------
+- Yanhong Zeng, Jianlong Fu, Hongyang Chao, "3D Human Body Reshaping with Anthropometric Modeling", ICIMCS(oral), 2017  
 
 
 Projects
@@ -48,14 +50,18 @@ Apr. 2016 - Jun. 2017
 :    **[simpleDL](https://github.com/1900zyh/simpleDL)**
     
     - a simple implementation of DNN including:RELULayer, SigmoidLayer, LinearLayer, LossLayer, DataLayer, SimpleNet ...
-    - C++
+    - C++  
+
+
+<br>
+<br>
 
 Skills
 ----------------------------------------
-- Human Languages: 
-    * Chinese (native speaker), English  
+<!-- - Human Languages: 
+    * Chinese (native speaker), English   -->
 - Programing Languages: 
-    * C, C++, Python, Java, web app, winPhone app, Android, Interpreter
+    * C, C++, Python, Java, web app, winPhone app, Android
 - Tools: 
     * Linux, Git, Latex, Markdown, Ocatave, Matlab  
 
@@ -67,7 +73,8 @@ Skills
 
 Awards & Honors
 ----------------
-* National Undergraduate Scholarship, 2016.
+* Outstanding Graduates of Sun Yat-sen University, 2017
+* National Undergraduate Scholarship, 2016
 * Honorable Mention in Interdisciplinary Contest In Modeling Certificate of Achievement, 2016
 * First Prise Sun Yat-sen Excellence Scholarship, 2014, 2015, 2016.
 
@@ -76,8 +83,6 @@ Teaching Assistants
 * Introduction to Software Engineering, \ \ \ 2015
 
 
-
-
 ----
-> <https://1900zyh.github.io> • +86 18819431268 • \
+> <https://1900zyh.github.io> • +86 17665086319 • \
 > Sun Yat-sen University - Guangzhou, China
