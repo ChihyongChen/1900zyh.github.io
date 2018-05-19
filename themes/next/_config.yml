@@ -52,7 +52,7 @@ index_with_subtitle: false
 menu:
   home: / || home
   categories: /categories/ || th
-  about: /about/resume.html || user
+  about: /about/resume.pdf || user
   Recent: /Recent/index.html || heartbeat
   # about: /about/ || user
   # tags: /tags/ || tags
