@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="CT, Research," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2" />
+
+
+
+
+
+
+<meta name="description" content="本篇研究的是Data Science Bowl 2017 TOP1的预处理。针对肺部CT扫描影像的预处理(mhd格式)的教程还有DSB2017的教程。相比后者,前者更加复杂,不仅从2D上进行提取,还从3D上利用体积面积来处理.而后者比较简单,对单张图片一个个进行分析,一般利用中心,HU阈值来直接取联通区域面积最大的区域,效果也还不错.考虑到希望从3D的角度也能尽可能去掉无关的因素,所以我们研究更加">
+<meta name="keywords" content="CT, Research">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Practiec | LUNA16：数据预处理">
+<meta property="og:url" content="https://1900zyh.github.io/LUNA16-Practice/index.html">
+<meta property="og:site_name" content="1900zengyh">
+<meta property="og:description" content="本篇研究的是Data Science Bowl 2017 TOP1的预处理。针对肺部CT扫描影像的预处理(mhd格式)的教程还有DSB2017的教程。相比后者,前者更加复杂,不仅从2D上进行提取,还从3D上利用体积面积来处理.而后者比较简单,对单张图片一个个进行分析,一般利用中心,HU阈值来直接取联通区域面积最大的区域,效果也还不错.考虑到希望从3D的角度也能尽可能去掉无关的因素,所以我们研究更加">
+<meta property="og:locale" content="en">
+<meta property="og:image" content="https://1900zyh.github.io/LUNA16-Practice/load_NO1_slice60.png">
+<meta property="og:image" content="https://1900zyh.github.io/LUNA16-Practice/binarized_NO1_slice60.png">
+<meta property="og:image" content="https://1900zyh.github.io/LUNA16-Practice/3danalysis_NO1_slice60.png">
+<meta property="og:image" content="https://1900zyh.github.io/LUNA16-Practice/fillhole_NO1_slice60.png">
+<meta property="og:image" content="https://1900zyh.github.io/LUNA16-Practice/left_max_area.png">
+<meta property="og:image" content="https://1900zyh.github.io/LUNA16-Practice/right_second_area.png">
+<meta property="og:image" content="https://1900zyh.github.io/LUNA16-Practice/bw1_after_extract_masks.png">
+<meta property="og:image" content="https://1900zyh.github.io/LUNA16-Practice/bw2_after_extract_masks.png">
+<meta property="og:image" content="https://1900zyh.github.io/LUNA16-Practice/bw_after_extract_masks.png">
+<meta property="og:image" content="https://1900zyh.github.io/LUNA16-Practice/dilated_mask_extra.png">
+<meta property="og:image" content="https://1900zyh.github.io/LUNA16-Practice/origin.png">
+<meta property="og:image" content="https://1900zyh.github.io/LUNA16-Practice/cut.jpg">
+<meta property="og:image" content="https://1900zyh.github.io/LUNA16-Practice/origin_label.png">
+<meta property="og:image" content="https://1900zyh.github.io/LUNA16-Practice/cut_label.png">
+<meta property="og:updated_time" content="2018-05-06T09:43:53.299Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Practiec | LUNA16：数据预处理">
+<meta name="twitter:description" content="本篇研究的是Data Science Bowl 2017 TOP1的预处理。针对肺部CT扫描影像的预处理(mhd格式)的教程还有DSB2017的教程。相比后者,前者更加复杂,不仅从2D上进行提取,还从3D上利用体积面积来处理.而后者比较简单,对单张图片一个个进行分析,一般利用中心,HU阈值来直接取联通区域面积最大的区域,效果也还不错.考虑到希望从3D的角度也能尽可能去掉无关的因素,所以我们研究更加">
+<meta name="twitter:image" content="https://1900zyh.github.io/LUNA16-Practice/load_NO1_slice60.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://1900zyh.github.io/LUNA16-Practice/"/>
+
+
+
+
+
+  <title>Practiec | LUNA16：数据预处理 | 1900zengyh</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">1900zengyh</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/resume.pdf" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-recent">
+          <a href="/Recent/index.html" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-heartbeat"></i> <br />
+            
+            Recent
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://1900zyh.github.io/LUNA16-Practice/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Yanhong Zeng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="1900zengyh">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Practiec | LUNA16：数据预处理</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-08-14T21:21:51+08:00">
+                2017-08-14
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>本篇研究的是<a href="https://github.com/lfz/DSB2017" target="_blank" rel="noopener">Data Science Bowl 2017 TOP1</a>的预处理。<br>针对肺部CT扫描影像的预处理(mhd格式)的教程还有<a href="https://www.kaggle.com/gzuidhof/full-preprocessing-tutorial" target="_blank" rel="noopener">DSB2017的教程</a>。<br>相比后者,前者更加复杂,不仅从2D上进行提取,还从3D上利用体积面积来处理.而后者比较简单,对单张图片一个个进行分析,一般利用中心,HU阈值来直接取联通区域面积最大的区域,效果也还不错.<br>考虑到希望从3D的角度也能尽可能去掉无关的因素,所以我们研究更加复杂的前者.<br>在mhd格式中，可以根据HU值来区别空气、组织器官和骨头等等，从而将肺部组织提取出来。<br>关于HU值的介绍可以看这篇<a href="https://shartoo.github.io/medical_image_process/" target="_blank" rel="noopener">常见医疗扫描图像处理步骤</a>。</p>
+<p>接下来，我对这些代码进行了轻微的改动，然后分析每一步的作用。<br><a id="more"></a></p>
+<h1 id="预处理：提取肺部组织"><a href="#预处理：提取肺部组织" class="headerlink" title="预处理：提取肺部组织"></a>预处理：提取肺部组织</h1><p>数据预处理部分我感觉是涉及到了很多的医学知识。<br>主要过程是：滤波、二值化、联通区域分析、3D联通区域分析、距离中心点距离分析。<br>整个过程有点迭代的意思，还挺琐碎复杂的。</p>
+<h2 id="每张slice单独分析"><a href="#每张slice单独分析" class="headerlink" title="每张slice单独分析"></a>每张slice单独分析</h2><p>首先是预处理部分，将肺部组织提取出来，去掉其他没有用的噪声是必要的。主要步骤有如下：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">binarize_per_slice</span><span class="params">(image, spacing, intensity_th=<span class="number">-600</span>, sigma=<span class="number">1</span>, area_th=<span class="number">30</span>, eccen_th=<span class="number">0.99</span>, bg_patch_size=<span class="number">10</span>)</span>:</span></span><br><span class="line">    bw = np.zeros(image.shape, dtype=bool)    </span><br><span class="line">    image_size = image.shape[<span class="number">1</span>]</span><br><span class="line">    grid_axis = np.linspace(-image_size/<span class="number">2</span>+<span class="number">0.5</span>, image_size/<span class="number">2</span><span class="number">-0.5</span>, image_size)</span><br><span class="line">    x, y = np.meshgrid(grid_axis, grid_axis)</span><br><span class="line">    d = (x**<span class="number">2</span>+y**<span class="number">2</span>)**<span class="number">0.5</span></span><br><span class="line">    nan_mask = (d&lt;image_size/<span class="number">2</span>).astype(float)</span><br><span class="line">    nan_mask[nan_mask == <span class="number">0</span>] = np.nan</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(image.shape[<span class="number">0</span>]):</span><br><span class="line">        <span class="keyword">if</span> len(np.unique(image[i, <span class="number">0</span>:bg_patch_size, <span class="number">0</span>:bg_patch_size])) == <span class="number">1</span>:</span><br><span class="line">            current_bw = scipy.ndimage.filters.gaussian_filter(np.multiply(image[i].astype(<span class="string">'float32'</span>), nan_mask), </span><br><span class="line">                sigma, truncate=<span class="number">2.0</span>) &lt; intensity_th</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            current_bw = scipy.ndimage.filters.gaussian_filter(image[i].astype(<span class="string">'float32'</span>), sigma, truncate=<span class="number">2.0</span>) &lt; intensity_th</span><br><span class="line">        label = measure.label(current_bw)</span><br><span class="line">        properties = measure.regionprops(label)</span><br><span class="line">        valid_label = set()</span><br><span class="line">        <span class="keyword">for</span> prop <span class="keyword">in</span> properties:</span><br><span class="line">            <span class="keyword">if</span> prop.area * spacing[<span class="number">1</span>] * spacing[<span class="number">2</span>] &gt; area_th <span class="keyword">and</span> prop.eccentricity &lt; eccen_th:</span><br><span class="line">                valid_label.add(prop.label)</span><br><span class="line">        current_bw = np.in1d(label, list(valid_label)).reshape(label.shape)</span><br><span class="line">        bw[i] = current_bw</span><br><span class="line">    <span class="keyword">return</span> bw</span><br></pre></td></tr></table></figure></p>
+<p>这段代码是对一个病人的每一张slice进行分析。接下来细说这个函数的每个步骤。</p>
+<p>首先计算距离。在一张slice中，以slice中心点为原点，计算这个slice中各个地方到中心点的几何距离。将距离大于等于image_size/2的设为nan。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">image_size = image.shape[<span class="number">1</span>]</span><br><span class="line">grid_axis = np.linspace(-image_size/<span class="number">2</span>+<span class="number">0.5</span>, image_size/<span class="number">2</span><span class="number">-0.5</span>, image_size)</span><br><span class="line">x, y = np.meshgrid(grid_axis, grid_axis)</span><br><span class="line"><span class="comment"># d is the distane for all pixel to the center</span></span><br><span class="line">d = (x**<span class="number">2</span>+y**<span class="number">2</span>)**<span class="number">0.5</span></span><br><span class="line">nan_mask = (d&lt;image_size/<span class="number">2</span>).astype(float)</span><br><span class="line">nan_mask[nan_mask == <span class="number">0</span>] = np.nan</span><br></pre></td></tr></table></figure></p>
+<p>对于每一张slice，如果左上角$10 \times 10$的区域里，HU值都是一样的即都是空气或水，就将整张图的非中心区域设为nan，否则就保留原值。然后再用用size = 1 pixel的高斯滤波器先进行滤波。然后用$ HU &gt;= -600 $将图像二值化，因为肺部组织的HU值是-500.<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> len(np.unique(image[i, <span class="number">0</span>:bg_patch_size, <span class="number">0</span>:bg_patch_size])) == <span class="number">1</span>:</span><br><span class="line">    current_bw = scipy.ndimage.filters.gaussian_filter(np.multiply.image[i].astype(<span class="string">'float32'</span>), nan_mask), </span><br><span class="line">        sigma, truncate=<span class="number">2.0</span>) &lt; intensity_th</span><br><span class="line"><span class="keyword">else</span>:</span><br><span class="line">    current_bw = scipy.ndimage.filters.gaussian_filter(image[i].astype(<span class="string">'float32'</span>), sigma, truncate=<span class="number">2.0</span>) &lt; intensity_th</span><br></pre></td></tr></table></figure></p>
+<p>经过上述的处理后，最后进行连通区域分析移除background成分。skimage.measure.label函数是用来实现将上面求得的bool值进行连通区域标记。regionprops函数对每一个连通区域进行属性获取和操作，比如计算面积、外接矩形、凸包面积等等。计算结果返回为所有连通区域的属性列表，列表长度为连通区域个数。如果连通区域面积大于area_th（这里设为$30mm^2$）,并且连通区域的离心率要小于阈值(eccentricity &lt; 0.99),就认为这个区域是ROI。 此时就对每张slice生成了一个mask。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">label = measure.label(current_bw)</span><br><span class="line">properties = measure.regionprops(label)</span><br><span class="line">valid_label = set()</span><br><span class="line"><span class="keyword">for</span> prop <span class="keyword">in</span> properties:</span><br><span class="line">    <span class="keyword">if</span> prop.area * spacing[<span class="number">1</span>] * spacing[<span class="number">2</span>] &gt; area_th <span class="keyword">and</span> prop.eccentricity &lt; eccen_th:</span><br><span class="line">        valid_label.add(prop.label)</span><br><span class="line">current_bw = np.in1d(label, list(valid_label)).reshape(label.shape)</span><br><span class="line">bw[i] = current_bw</span><br></pre></td></tr></table></figure></p>
+<p>下面两张图分别是处理前后用matplotlib画出来的。<br>处理前：<br><img src="load_NO1_slice60.png" alt="处理前"><br>处理后：<br><img src="binarized_NO1_slice60.png" alt="处理后"><br>可以看到处理后，边角的背景、包裹肺部的亮色胸腔部分都被去除了。<br>也就是说，这一步主要就是去边角、肺部组织附近的脂肪、水、肾等background。</p>
+<h2 id="所有slices立体分析"><a href="#所有slices立体分析" class="headerlink" title="所有slices立体分析"></a>所有slices立体分析</h2><p>首先这部分代码整体是这样的。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">bw = binarize_per_slice(img_array, spacing)</span><br><span class="line">flag = <span class="number">0</span></span><br><span class="line">cut_num = <span class="number">0</span></span><br><span class="line">cut_step = <span class="number">2</span></span><br><span class="line">bw0 = np.copy(bw)</span><br><span class="line"><span class="keyword">while</span> flag == <span class="number">0</span> <span class="keyword">and</span> cut_num &lt; bw.shape[<span class="number">0</span>]:</span><br><span class="line">    bw = np.copy(bw0)</span><br><span class="line">    bw, flag = all_slice_analysis(bw, spacing, cut_num=cut_num, vol_limit=[<span class="number">0.68</span>,<span class="number">7.5</span>])</span><br><span class="line">    cut_num = cut_num + cut_step</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">all_slice_analysis</span><span class="params">(bw, spacing, cut_num=<span class="number">0</span>, vol_limit=[<span class="number">0.68</span>, <span class="number">8.2</span>], area_th=<span class="number">6e3</span>, dist_th=<span class="number">62</span>)</span>:</span></span><br><span class="line">    <span class="keyword">if</span> cut_num &gt; <span class="number">0</span>:</span><br><span class="line">        bw0 = np.copy(bw)</span><br><span class="line">        bw[-cut_num:] = <span class="keyword">False</span></span><br><span class="line">    label = measure.label(bw, connectivity=<span class="number">1</span>)</span><br><span class="line">    mid = int(label.shape[<span class="number">2</span>] / <span class="number">2</span>)</span><br><span class="line">    bg_label = set([label[<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>], label[<span class="number">0</span>, <span class="number">0</span>, <span class="number">-1</span>], label[<span class="number">0</span>, <span class="number">-1</span>, <span class="number">0</span>], label[<span class="number">0</span>, <span class="number">-1</span>, <span class="number">-1</span>], \</span><br><span class="line">                    label[<span class="number">-1</span>-cut_num, <span class="number">0</span>, <span class="number">0</span>], label[<span class="number">-1</span>-cut_num, <span class="number">0</span>, <span class="number">-1</span>], label[<span class="number">-1</span>-cut_num, <span class="number">-1</span>, <span class="number">0</span>], label[<span class="number">-1</span>-cut_num, <span class="number">-1</span>, <span class="number">-1</span>], \</span><br><span class="line">                    label[<span class="number">0</span>, <span class="number">0</span>, mid], label[<span class="number">0</span>, <span class="number">-1</span>, mid], label[<span class="number">-1</span>-cut_num, <span class="number">0</span>, mid], label[<span class="number">-1</span>-cut_num, <span class="number">-1</span>, mid]])</span><br><span class="line">    <span class="keyword">for</span> l <span class="keyword">in</span> bg_label:</span><br><span class="line">        label[label == l] = <span class="number">0</span></span><br><span class="line">    properties = measure.regionprops(label)</span><br><span class="line">    <span class="keyword">for</span> prop <span class="keyword">in</span> properties:</span><br><span class="line">        <span class="keyword">if</span> prop.area * spacing.prod() &lt; vol_limit[<span class="number">0</span>] * <span class="number">1e6</span> <span class="keyword">or</span> prop.area * spacing.prod() &gt; vol_limit[<span class="number">1</span>] * <span class="number">1e6</span>:</span><br><span class="line">            label[label == prop.label] = <span class="number">0</span></span><br><span class="line">    x_axis = np.linspace(-label.shape[<span class="number">1</span>]/<span class="number">2</span>+<span class="number">0.5</span>, label.shape[<span class="number">1</span>]/<span class="number">2</span><span class="number">-0.5</span>, label.shape[<span class="number">1</span>]) * spacing[<span class="number">1</span>]</span><br><span class="line">    y_axis = np.linspace(-label.shape[<span class="number">2</span>]/<span class="number">2</span>+<span class="number">0.5</span>, label.shape[<span class="number">2</span>]/<span class="number">2</span><span class="number">-0.5</span>, label.shape[<span class="number">2</span>]) * spacing[<span class="number">2</span>]</span><br><span class="line">    x, y = np.meshgrid(x_axis, y_axis)</span><br><span class="line">    d = (x**<span class="number">2</span>+y**<span class="number">2</span>)**<span class="number">0.5</span></span><br><span class="line">    vols = measure.regionprops(label)</span><br><span class="line">    valid_label = set()</span><br><span class="line">    <span class="keyword">for</span> vol <span class="keyword">in</span> vols:</span><br><span class="line">        single_vol = label == vol.label</span><br><span class="line">        slice_area = np.zeros(label.shape[<span class="number">0</span>])</span><br><span class="line">        min_distance = np.zeros(label.shape[<span class="number">0</span>])</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(label.shape[<span class="number">0</span>]):</span><br><span class="line">            slice_area[i] = np.sum(single_vol[i]) * np.prod(spacing[<span class="number">1</span>:<span class="number">3</span>])</span><br><span class="line">            min_distance[i] = np.min(single_vol[i] * d + (<span class="number">1</span> - single_vol[i]) * np.max(d))</span><br><span class="line">        <span class="keyword">if</span> np.average([min_distance[i] <span class="keyword">for</span> i <span class="keyword">in</span> range(label.shape[<span class="number">0</span>]) <span class="keyword">if</span> slice_area[i] &gt; area_th]) &lt; dist_th:</span><br><span class="line">            valid_label.add(vol.label)</span><br><span class="line">    bw = np.in1d(label, list(valid_label)).reshape(label.shape)</span><br><span class="line">    <span class="keyword">if</span> cut_num &gt; <span class="number">0</span>:</span><br><span class="line">        <span class="comment"># bw1 is bw with removed slices, bw2 is a dilated version of bw, part of their intersection is returned as final mask</span></span><br><span class="line">        bw1 = np.copy(bw)</span><br><span class="line">        bw1[-cut_num:] = bw0[-cut_num:]</span><br><span class="line">        bw2 = np.copy(bw)</span><br><span class="line">        bw2 = scipy.ndimage.binary_dilation(bw2, iterations=cut_num)</span><br><span class="line">        bw3 = bw1 &amp; bw2</span><br><span class="line">        label = measure.label(bw, connectivity=<span class="number">1</span>)</span><br><span class="line">        label3 = measure.label(bw3, connectivity=<span class="number">1</span>)</span><br><span class="line">        l_list = list(set(np.unique(label)) - &#123;<span class="number">0</span>&#125;)</span><br><span class="line">        valid_l3 = set()</span><br><span class="line">        <span class="keyword">for</span> l <span class="keyword">in</span> l_list:</span><br><span class="line">            indices = np.nonzero(label==l)</span><br><span class="line">            l3 = label3[indices[<span class="number">0</span>][<span class="number">0</span>], indices[<span class="number">1</span>][<span class="number">0</span>], indices[<span class="number">2</span>][<span class="number">0</span>]]</span><br><span class="line">            <span class="keyword">if</span> l3 &gt; <span class="number">0</span>:</span><br><span class="line">                valid_l3.add(l3)</span><br><span class="line">        bw = np.in1d(label3, list(valid_l3)).reshape(label3.shape)</span><br><span class="line">    <span class="keyword">return</span> bw, len(valid_label)</span><br></pre></td></tr></table></figure>
+<p>接下来详细分析每一个步骤。</p>
+<p>在某一些例子中，需要把最上面的几张slice去掉。cut_num每次以cut_step（这里设为2）的速度递增，也就是每两张判断一次的意思。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> cut_num &gt; <span class="number">0</span>:</span><br><span class="line">    bw0 = np.copy(bw)</span><br><span class="line">    bw[-cut_num:] = <span class="keyword">False</span></span><br><span class="line">label = measure.label(bw, connectivity=<span class="number">1</span>)</span><br></pre></td></tr></table></figure></p>
+<p>bg_label是第一张slice的四个角以及第一条和最后一条的中点处、除去被cut掉的slice后的最后一张的四个角以及第一条和最后一条的中点处的label。将这些label都设为0.这里将这些部分的区域都当成了背景，设为0，其实也就是设成label[0,0,0]。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">mid = int(label.shape[<span class="number">2</span>] / <span class="number">2</span>)</span><br><span class="line">bg_label = set([label[<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>], label[<span class="number">0</span>, <span class="number">0</span>, <span class="number">-1</span>], </span><br><span class="line">                label[<span class="number">0</span>, <span class="number">-1</span>, <span class="number">0</span>], label[<span class="number">0</span>, <span class="number">-1</span>, <span class="number">-1</span>],</span><br><span class="line">                label[<span class="number">-1</span>-cut_num, <span class="number">0</span>, <span class="number">0</span>], label[<span class="number">-1</span>-cut_num, <span class="number">0</span>, <span class="number">-1</span>], </span><br><span class="line">                label[<span class="number">-1</span>-cut_num, <span class="number">-1</span>, <span class="number">0</span>], label[<span class="number">-1</span>-cut_num, <span class="number">-1</span>, <span class="number">-1</span>],</span><br><span class="line">                label[<span class="number">0</span>, <span class="number">0</span>, mid], label[<span class="number">0</span>, <span class="number">-1</span>, mid], </span><br><span class="line">                label[<span class="number">-1</span>-cut_num, <span class="number">0</span>, mid], label[<span class="number">-1</span>-cut_num, <span class="number">-1</span>, mid]])</span><br><span class="line"><span class="keyword">for</span> l <span class="keyword">in</span> bg_label:</span><br><span class="line">    label[label == l] = <span class="number">0</span></span><br></pre></td></tr></table></figure></p>
+<p>这里的vol_limit是[0.68L, 7.5L]。上一步将所有slice的背景部分都设成了同样的label值，这里算出的prop.area就是立体的，乘以spacing的三个数相乘就得到了物理意义上的体积。这里设定体积小于0.68L，大于7.5L的都去掉。这里是认为大于7.5L的是背景，小于0.68L的是杂质之类的。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">properties = measure.regionprops(label)</span><br><span class="line"><span class="keyword">for</span> prop <span class="keyword">in</span> properties:</span><br><span class="line">    <span class="keyword">if</span> prop.area * spacing.prod() &lt; vol_limit[<span class="number">0</span>] * <span class="number">1e6</span> <span class="keyword">or</span> prop.area * spacing.prod() &gt; vol_limit[<span class="number">1</span>] * <span class="number">1e6</span>:</span><br><span class="line">        label[label == prop.label] = <span class="number">0</span></span><br></pre></td></tr></table></figure></p>
+<p>与之前每张slice单独进行分析时候一样，计算一张map，map上的每个位置是该位置到slice中心位置的几何距离，不同的是此时的几何距离不是简单的图像上的距离，而是物理世界里的几何距离。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">x_axis = np.linspace(-label.shape[<span class="number">1</span>]/<span class="number">2</span>+<span class="number">0.5</span>, label.shape[<span class="number">1</span>]/<span class="number">2</span><span class="number">-0.5</span>, label.shape[<span class="number">1</span>]) * spacing[<span class="number">1</span>]</span><br><span class="line">y_axis = np.linspace(-label.shape[<span class="number">2</span>]/<span class="number">2</span>+<span class="number">0.5</span>, label.shape[<span class="number">2</span>]/<span class="number">2</span><span class="number">-0.5</span>, label.shape[<span class="number">2</span>]) * spacing[<span class="number">2</span>]</span><br><span class="line">x, y = np.meshgrid(x_axis, y_axis)</span><br><span class="line">d = (x**<span class="number">2</span>+y**<span class="number">2</span>)**<span class="number">0.5</span></span><br></pre></td></tr></table></figure></p>
+<p>vols表示目前3D slices中所有的有效的label。对于每一种label， 计算每张slice上这种label的有效面积slice_area，min_distance记录的是每张slice上这种label的区域距离该slice中心最近的距离。我们认为这个病人的所有面积大于阈值（area_th：$6e3 mm^2$）是有效slice，而这些有效slice距离各自中心点的平均距离如果小于阈值（dist_th： 62mm）则认为这个label是属于肺部组织的label。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">vols = measure.regionprops(label)</span><br><span class="line">valid_label = set()</span><br><span class="line"><span class="keyword">for</span> vol <span class="keyword">in</span> vols:</span><br><span class="line">    single_vol = label == vol.label</span><br><span class="line">    slice_area = np.zeros(label.shape[<span class="number">0</span>])</span><br><span class="line">    min_distance = np.zeros(label.shape[<span class="number">0</span>])</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(label.shape[<span class="number">0</span>]):</span><br><span class="line">        slice_area[i] = np.sum(single_vol[i]) * np.prod(spacing[<span class="number">1</span>:<span class="number">3</span>])</span><br><span class="line">        min_distance[i] = np.min(single_vol[i] * d + (<span class="number">1</span> - single_vol[i]) * np.max(d))</span><br><span class="line">    <span class="keyword">if</span> np.average([min_distance[i] <span class="keyword">for</span> i <span class="keyword">in</span> range(label.shape[<span class="number">0</span>]) <span class="keyword">if</span> slice_area[i] &gt; area_th]) &lt; dist_th:</span><br><span class="line">        valid_label.add(vol.label)</span><br><span class="line">bw = np.in1d(label, list(valid_label)).reshape(label.shape)</span><br></pre></td></tr></table></figure></p>
+<p>最后要将第一步去除掉的几张slice还原回来。bw1是处理过但保留原cut_num张slice的图像，bw2是不还原并且进行过膨胀处理的mask。最终的mask：bw3，是bw1和bw2的交集。valid_l3中的元素表示的就是bw中有并且bw中也有的。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> cut_num &gt; <span class="number">0</span>:</span><br><span class="line">    bw1 = np.copy(bw)</span><br><span class="line">    bw1[-cut_num:] = bw0[-cut_num:]</span><br><span class="line">    bw2 = np.copy(bw)</span><br><span class="line">    bw2 = scipy.ndimage.binary_dilation(bw2, iterations=cut_num)</span><br><span class="line">    bw3 = bw1 &amp; bw2</span><br><span class="line">    label = measure.label(bw, connectivity=<span class="number">1</span>)</span><br><span class="line">    label3 = measure.label(bw3, connectivity=<span class="number">1</span>)</span><br><span class="line">    l_list = list(set(np.unique(label)) - &#123;<span class="number">0</span>&#125;)</span><br><span class="line">    valid_l3 = set()</span><br><span class="line">    <span class="keyword">for</span> l <span class="keyword">in</span> l_list:</span><br><span class="line">        indices = np.nonzero(label==l)</span><br><span class="line">        l3 = label3[indices[<span class="number">0</span>][<span class="number">0</span>], indices[<span class="number">1</span>][<span class="number">0</span>], indices[<span class="number">2</span>][<span class="number">0</span>]]</span><br><span class="line">        <span class="keyword">if</span> l3 &gt; <span class="number">0</span>:</span><br><span class="line">            valid_l3.add(l3)</span><br><span class="line">    bw = np.in1d(label3, list(valid_l3)).reshape(label3.shape)</span><br><span class="line"><span class="keyword">return</span> bw, len(valid_label)</span><br></pre></td></tr></table></figure></p>
+<p>以上的这些步骤在某种情况下会迭代进行。这是因为，在某些case中，肺部组织会和外部空间连在一起，这就导致这些区域是联通的、超过阈值的，会被当成背景，此时valid_label可能是空的，因此就需要把top的几张slice先去除。这里使用cut_num=2的速度来进行筛选。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">flag = <span class="number">0</span></span><br><span class="line">cut_num = <span class="number">0</span></span><br><span class="line">cut_step = <span class="number">2</span></span><br><span class="line">bw0 = np.copy(bw)</span><br><span class="line"><span class="keyword">while</span> flag == <span class="number">0</span> <span class="keyword">and</span> cut_num &lt; bw.shape[<span class="number">0</span>]:</span><br><span class="line">    bw = np.copy(bw0)</span><br><span class="line">    bw, flag = all_slice_analysis(bw, spacing, cut_num=cut_num, vol_limit=[<span class="number">0.68</span>,<span class="number">7.5</span>])</span><br><span class="line">    cut_num = cut_num + cut_step</span><br></pre></td></tr></table></figure></p>
+<p>如下图就是一个处理后的示意图，将一些仪器背景形成的联通区域去掉了。</p>
+<p><img src="3danalysis_NO1_slice60.png" alt="处理后"></p>
+<p>从上面这张图我们会发现，肺部中间有些洞被空挖掉了，但实际上我们希望提取ROI是整个肺部组织，而不是挖洞的。因此，我们再次进行联通区域分析，并且只将label和边角的一样的部分移除，其余的保留。这段处理的代码如下：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">fill_hole</span><span class="params">(bw)</span>:</span></span><br><span class="line">    label = measure.label(~bw)</span><br><span class="line">    bg_label = set([label[<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>], label[<span class="number">0</span>, <span class="number">0</span>, <span class="number">-1</span>], </span><br><span class="line">                    label[<span class="number">0</span>, <span class="number">-1</span>, <span class="number">0</span>], label[<span class="number">0</span>, <span class="number">-1</span>, <span class="number">-1</span>],</span><br><span class="line">                    label[<span class="number">-1</span>, <span class="number">0</span>, <span class="number">0</span>], label[<span class="number">-1</span>, <span class="number">0</span>, <span class="number">-1</span>], </span><br><span class="line">                    label[<span class="number">-1</span>, <span class="number">-1</span>, <span class="number">0</span>], label[<span class="number">-1</span>, <span class="number">-1</span>, <span class="number">-1</span>]])</span><br><span class="line">    bw = ~np.in1d(label, list(bg_label)).reshape(label.shape)    </span><br><span class="line">    <span class="keyword">return</span> bw</span><br></pre></td></tr></table></figure></p>
+<p>这一步结束后得到的结果：<br><img src="fillhole_NO1_slice60.png" alt="处理后"><br>可以看到有一些洞确实是被填上了。二维的角度看好像没什么变化，但实际上三维角度上看剩下的这些洞很可能是和外部空间相连接的，因此没有被填上。</p>
+<h2 id="单独生成左右肺mask"><a href="#单独生成左右肺mask" class="headerlink" title="单独生成左右肺mask"></a>单独生成左右肺mask</h2><p>这部分代码主要是，不断进行腐蚀操作直到最大的两个区域（左肺和右肺）有同样的体积。在腐蚀膨胀的过程中，分别为两片肺生成mask。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">two_lung_only</span><span class="params">(bw, spacing, max_iter=<span class="number">22</span>, max_ratio=<span class="number">4.8</span>)</span>:</span>    </span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">extract_main</span><span class="params">(bw, cover=<span class="number">0.95</span>)</span>:</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(bw.shape[<span class="number">0</span>]):</span><br><span class="line">            current_slice = bw[i]</span><br><span class="line">            label = measure.label(current_slice)</span><br><span class="line">            properties = measure.regionprops(label)</span><br><span class="line">            properties.sort(key=<span class="keyword">lambda</span> x: x.area, reverse=<span class="keyword">True</span>)</span><br><span class="line">            area = [prop.area <span class="keyword">for</span> prop <span class="keyword">in</span> properties]</span><br><span class="line">            count = <span class="number">0</span></span><br><span class="line">            sum = <span class="number">0</span></span><br><span class="line">            <span class="keyword">while</span> sum &lt; np.sum(area)*cover:</span><br><span class="line">                sum = sum+area[count]</span><br><span class="line">                count = count+<span class="number">1</span></span><br><span class="line">            filter = np.zeros(current_slice.shape, dtype=bool)</span><br><span class="line">            <span class="keyword">for</span> j <span class="keyword">in</span> range(count):</span><br><span class="line">                bb = properties[j].bbox</span><br><span class="line">                filter[bb[<span class="number">0</span>]:bb[<span class="number">2</span>], bb[<span class="number">1</span>]:bb[<span class="number">3</span>]] = filter[bb[<span class="number">0</span>]:bb[<span class="number">2</span>], bb[<span class="number">1</span>]:bb[<span class="number">3</span>]] | properties[j].convex_image</span><br><span class="line">            bw[i] = bw[i] &amp; filter</span><br><span class="line">           </span><br><span class="line">        label = measure.label(bw)</span><br><span class="line">        properties = measure.regionprops(label)</span><br><span class="line">        properties.sort(key=<span class="keyword">lambda</span> x: x.area, reverse=<span class="keyword">True</span>)</span><br><span class="line">        bw = label==properties[<span class="number">0</span>].label</span><br><span class="line">        <span class="keyword">return</span> bw</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">fill_2d_hole</span><span class="params">(bw)</span>:</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(bw.shape[<span class="number">0</span>]):</span><br><span class="line">            current_slice = bw[i]</span><br><span class="line">            label = measure.label(current_slice)</span><br><span class="line">            properties = measure.regionprops(label)</span><br><span class="line">            <span class="keyword">for</span> prop <span class="keyword">in</span> properties:</span><br><span class="line">                bb = prop.bbox</span><br><span class="line">                current_slice[bb[<span class="number">0</span>]:bb[<span class="number">2</span>], bb[<span class="number">1</span>]:bb[<span class="number">3</span>]] = current_slice[bb[<span class="number">0</span>]:bb[<span class="number">2</span>], bb[<span class="number">1</span>]:bb[<span class="number">3</span>]] | prop.filled_image</span><br><span class="line">            bw[i] = current_slice</span><br><span class="line">        <span class="keyword">return</span> bw</span><br><span class="line">    </span><br><span class="line">    print(<span class="string">"two lung only..."</span>)</span><br><span class="line">    found_flag = <span class="keyword">False</span></span><br><span class="line">    iter_count = <span class="number">0</span></span><br><span class="line">    bw0 = np.copy(bw)</span><br><span class="line">    <span class="keyword">while</span> <span class="keyword">not</span> found_flag <span class="keyword">and</span> iter_count &lt; max_iter:</span><br><span class="line">        print(iter_count, max_iter)</span><br><span class="line">        label = measure.label(bw, connectivity=<span class="number">2</span>)</span><br><span class="line">        properties = measure.regionprops(label)</span><br><span class="line">        properties.sort(key=<span class="keyword">lambda</span> x: x.area, reverse=<span class="keyword">True</span>)</span><br><span class="line">        <span class="keyword">if</span> len(properties) &gt; <span class="number">1</span> <span class="keyword">and</span> properties[<span class="number">0</span>].area/properties[<span class="number">1</span>].area &lt; max_ratio:</span><br><span class="line">            found_flag = <span class="keyword">True</span></span><br><span class="line">            bw1 = label == properties[<span class="number">0</span>].label</span><br><span class="line">            bw2 = label == properties[<span class="number">1</span>].label</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            bw = scipy.ndimage.binary_erosion(bw)</span><br><span class="line">            iter_count = iter_count + <span class="number">1</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> found_flag:</span><br><span class="line">        d1 = scipy.ndimage.morphology.distance_transform_edt(bw1 == <span class="keyword">False</span>, sampling=spacing)</span><br><span class="line">        d2 = scipy.ndimage.morphology.distance_transform_edt(bw2 == <span class="keyword">False</span>, sampling=spacing)</span><br><span class="line">        bw1 = bw0 &amp; (d1 &lt; d2)</span><br><span class="line">        bw2 = bw0 &amp; (d1 &gt; d2)</span><br><span class="line">                </span><br><span class="line">        bw1 = extract_main(bw1)</span><br><span class="line">        bw2 = extract_main(bw2)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        print(<span class="string">"***************not found***************"</span>)</span><br><span class="line">        bw1 = bw0</span><br><span class="line">        bw2 = np.zeros(bw.shape).astype(<span class="string">'bool'</span>)</span><br><span class="line">    print(<span class="string">"fill_2d_hole ing"</span>)</span><br><span class="line">    bw1 = fill_2d_hole(bw1)</span><br><span class="line">    bw2 = fill_2d_hole(bw2)</span><br><span class="line">    bw = bw1 | bw2</span><br><span class="line">    <span class="keyword">return</span> bw1, bw2, bw</span><br></pre></td></tr></table></figure></p>
+<p>以下对这部分的代码进行一一分析。</p>
+<p>按照代码执行的逻辑顺序开始分析。这里有两个参数，一个是max_iter，设定的是迭代寻找肺部组织的次数，程序中用的是22。一个是max_ratio，最大面积不能超过第二面积的max_ratio(这里设为4.8)倍。找到符合面积要求的联通区域则停止迭代，否则就继续腐蚀操作直到找到符合要求的联通区域。这里可以看到，bw1是最大面积的label，bw2是第二大面积的label，从之后的代码也可以看出，这里的bw1和bw2其实指的就是左右肺。注意这里的联通区域是三维的。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">found_flag = <span class="keyword">False</span></span><br><span class="line">iter_count = <span class="number">0</span></span><br><span class="line">bw0 = np.copy(bw)</span><br><span class="line"><span class="keyword">while</span> <span class="keyword">not</span> found_flag <span class="keyword">and</span> iter_count &lt; max_iter:</span><br><span class="line">    print(iter_count, max_iter)</span><br><span class="line">    label = measure.label(bw, connectivity=<span class="number">2</span>)</span><br><span class="line">    properties = measure.regionprops(label)</span><br><span class="line">    properties.sort(key=<span class="keyword">lambda</span> x: x.area, reverse=<span class="keyword">True</span>)</span><br><span class="line">    <span class="keyword">if</span> len(properties) &gt; <span class="number">1</span> <span class="keyword">and</span> properties[<span class="number">0</span>].area/properties[<span class="number">1</span>].area &lt; max_ratio:</span><br><span class="line">        found_flag = <span class="keyword">True</span></span><br><span class="line">        bw1 = label == properties[<span class="number">0</span>].label</span><br><span class="line">        bw2 = label == properties[<span class="number">1</span>].label</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        bw = scipy.ndimage.binary_erosion(bw)</span><br><span class="line">        iter_count = iter_count + <span class="number">1</span></span><br></pre></td></tr></table></figure></p>
+<p>bw1:<br><img src="left_max_area.png" alt="bw1"><br>bw2:<br><img src="right_second_area.png" alt="bw2"></p>
+<p>上述步骤找到左右肺后继续下一步操作，如果没有找到左右肺就直接将原本的bw作为bw1,而bw2为空，二者并集为最终的mask。distance_transform_edt的意思是非零点到背景点（零值点）的最近距离。这一步实际上是将左右肺继续做明确的分割，然后再进行主要成分提取。最后还是进行一些肺部内部区域的填充.<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> found_flag:</span><br><span class="line">    d1 = scipy.ndimage.morphology.distance_transform_edt(bw1 == <span class="keyword">False</span>, sampling=spacing)</span><br><span class="line">    d2 = scipy.ndimage.morphology.distance_transform_edt(bw2 == <span class="keyword">False</span>, sampling=spacing)</span><br><span class="line">    bw1 = bw0 &amp; (d1 &lt; d2)</span><br><span class="line">    bw2 = bw0 &amp; (d1 &gt; d2)</span><br><span class="line">    bw1 = extract_main(bw1)</span><br><span class="line">    bw2 = extract_main(bw2)</span><br><span class="line"><span class="keyword">else</span>:</span><br><span class="line">    print(<span class="string">"***************not found***************"</span>)</span><br><span class="line">    bw1 = bw0</span><br><span class="line">    bw2 = np.zeros(bw.shape).astype(<span class="string">'bool'</span>)</span><br><span class="line">print(<span class="string">"fill_2d_hole ing"</span>)</span><br><span class="line">bw1 = fill_2d_hole(bw1)</span><br><span class="line">bw2 = fill_2d_hole(bw2)</span><br><span class="line">bw = bw1 | bw2</span><br><span class="line"><span class="keyword">return</span> bw1, bw2, bw</span><br></pre></td></tr></table></figure></p>
+<p>上述中的extract_main函数分析如下。首先还是进行联通区域分析，选择占当前slice 95% 面积的区域，并计算他们的凸包convex_image的并集。通过这种方式可以将肺部的主要面积给截取出来。但最后返回的bw是面积最大的那一个。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">extract_main</span><span class="params">(bw, cover=<span class="number">0.95</span>)</span>:</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(bw.shape[<span class="number">0</span>]):</span><br><span class="line">        current_slice = bw[i]</span><br><span class="line">        label = measure.label(current_slice)</span><br><span class="line">        properties = measure.regionprops(label)</span><br><span class="line">        properties.sort(key=<span class="keyword">lambda</span> x: x.area, reverse=<span class="keyword">True</span>)</span><br><span class="line">        area = [prop.area <span class="keyword">for</span> prop <span class="keyword">in</span> properties]</span><br><span class="line">        count = <span class="number">0</span></span><br><span class="line">        sum = <span class="number">0</span></span><br><span class="line">        <span class="keyword">while</span> sum &lt; np.sum(area)*cover:</span><br><span class="line">            sum = sum+area[count]</span><br><span class="line">            count = count+<span class="number">1</span></span><br><span class="line">        filter = np.zeros(current_slice.shape, dtype=bool)</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> range(count):</span><br><span class="line">            bb = properties[j].bbox</span><br><span class="line">            filter[bb[<span class="number">0</span>]:bb[<span class="number">2</span>], bb[<span class="number">1</span>]:bb[<span class="number">3</span>]] = filter[bb[<span class="number">0</span>]:bb[<span class="number">2</span>], bb[<span class="number">1</span>]:bb[<span class="number">3</span>]] | properties[j].convex_image</span><br><span class="line">        bw[i] = bw[i] &amp; filter</span><br><span class="line">    label = measure.label(bw)</span><br><span class="line">    properties = measure.regionprops(label)</span><br><span class="line">    properties.sort(key=<span class="keyword">lambda</span> x: x.area, reverse=<span class="keyword">True</span>)</span><br><span class="line">    bw = label==properties[<span class="number">0</span>].label</span><br><span class="line">    <span class="keyword">return</span> bw</span><br></pre></td></tr></table></figure></p>
+<p>fill_2d_hole主要是利用联通区域的filled_image进行处理。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">fill_2d_hole</span><span class="params">(bw)</span>:</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(bw.shape[<span class="number">0</span>]):</span><br><span class="line">        current_slice = bw[i]</span><br><span class="line">        label = measure.label(current_slice)</span><br><span class="line">        properties = measure.regionprops(label)</span><br><span class="line">        <span class="keyword">for</span> prop <span class="keyword">in</span> properties:</span><br><span class="line">            bb = prop.bbox</span><br><span class="line">            current_slice[bb[<span class="number">0</span>]:bb[<span class="number">2</span>], bb[<span class="number">1</span>]:bb[<span class="number">3</span>]] = current_slice[bb[<span class="number">0</span>]:bb[<span class="number">2</span>], bb[<span class="number">1</span>]:bb[<span class="number">3</span>]] | prop.filled_image</span><br><span class="line">        bw[i] = current_slice</span><br><span class="line">    <span class="keyword">return</span> bw</span><br></pre></td></tr></table></figure></p>
+<p>该过程处理后的一个最终结果：<br>bw1:<br><img src="bw1_after_extract_masks.png" alt="bw1"><br>bw2:<br><img src="bw2_after_extract_masks.png" alt="bw2"><br>bw:<br><img src="bw_after_extract_masks.png" alt="bw"></p>
+<h1 id="预处理：Apply-Mask"><a href="#预处理：Apply-Mask" class="headerlink" title="预处理：Apply Mask"></a>预处理：Apply Mask</h1><p>这一步首先先计算出物理世界中的ROI的外边框。然后将mask再分别向两边膨胀5个物理坐标点，使得mask周围的一点空间可以被包进来。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">    resolution = np.array([<span class="number">1</span>,<span class="number">1</span>,<span class="number">1</span>])</span><br><span class="line">    Mask = m1+m2</span><br><span class="line">    newshape = np.round(np.array(Mask.shape)*spacing/resolution)</span><br><span class="line">    xx,yy,zz= np.where(Mask)</span><br><span class="line">    box = np.array([[np.min(xx),np.max(xx)],[np.min(yy),np.max(yy)],[np.min(zz),np.max(zz)]])</span><br><span class="line">    box = box*np.expand_dims(spacing,<span class="number">1</span>)/np.expand_dims(resolution,<span class="number">1</span>)</span><br><span class="line">    box = np.floor(box).astype(<span class="string">'int'</span>)</span><br><span class="line">    margin = <span class="number">5</span></span><br><span class="line">    extendbox = np.vstack([np.max([[<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>],box[:,<span class="number">0</span>]-margin],<span class="number">0</span>),np.min([newshape,box[:,<span class="number">1</span>]+<span class="number">2</span>*margin],axis=<span class="number">0</span>).T]).T</span><br><span class="line">    extendbox = extendbox.astype(<span class="string">'int'</span>)</span><br><span class="line">`</span><br></pre></td></tr></table></figure></p>
+<p>。如果凸包mask相比原mask增加的区域超过了50%，则用原mask继续计算，否则就用凸包图像convex hull来代替目前计算的mask。最后返回腐蚀操作的dilatedMask。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">process_mask</span><span class="params">(mask)</span>:</span></span><br><span class="line">    convex_mask = np.copy(mask)</span><br><span class="line">    <span class="keyword">for</span> i_layer <span class="keyword">in</span> range(convex_mask.shape[<span class="number">0</span>]):</span><br><span class="line">        <span class="comment"># ascontiguousarray函数是将数组以连续数组的形式返回</span></span><br><span class="line">        mask1  = np.ascontiguousarray(mask[i_layer])</span><br><span class="line">        <span class="keyword">if</span> np.sum(mask1)&gt;<span class="number">0</span>:</span><br><span class="line">            <span class="comment"># mask2是当前mask的凸包图像</span></span><br><span class="line">            mask2 = convex_hull_image(mask1)</span><br><span class="line">            <span class="comment"># 如果凸包图像比原mask大了50%</span></span><br><span class="line">            <span class="keyword">if</span> np.sum(mask2)&gt;<span class="number">1.5</span>*np.sum(mask1):</span><br><span class="line">                mask2 = mask1</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            mask2 = mask1</span><br><span class="line">        convex_mask[i_layer] = mask2</span><br><span class="line">        <span class="comment"># connectity为1</span></span><br><span class="line">    struct = generate_binary_structure(<span class="number">3</span>,<span class="number">1</span>)  </span><br><span class="line">    dilatedMask = binary_dilation(convex_mask,structure=struct,iterations=<span class="number">10</span>) </span><br><span class="line">    <span class="keyword">return</span> dilatedMask</span><br></pre></td></tr></table></figure></p>
+<p>这段代码就是利用process_mask操作来对mask进行凸包处理。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">dm1 = process_mask(m1)</span><br><span class="line">dm2 = process_mask(m2)</span><br><span class="line">dilatedMask = dm1+dm2</span><br><span class="line">Mask = m1+m2</span><br><span class="line">extramask = dilatedMask - Mask</span><br></pre></td></tr></table></figure></p>
+<p>以下这张图就分别是dilated_mask, mask,extramask。<br><img src="dilated_mask_extra.png" alt="dilated_mask_extra"></p>
+<p>simpleitk读取mhd的image_array数值是HU的数值，在送进网络进行判断前，我们需要将其转化成[0,255]的灰度值。HU有效值在[-1200,600]之间。整个映射变化只是一个简单的线性映射。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">lumTrans</span><span class="params">(img)</span>:</span></span><br><span class="line">    lungwin = np.array([<span class="number">-1200.</span>,<span class="number">600.</span>])</span><br><span class="line">    newimg = (img-lungwin[<span class="number">0</span>])/(lungwin[<span class="number">1</span>]-lungwin[<span class="number">0</span>])</span><br><span class="line">    newimg[newimg&lt;<span class="number">0</span>]=<span class="number">0</span></span><br><span class="line">    newimg[newimg&gt;<span class="number">1</span>]=<span class="number">1</span></span><br><span class="line">    newimg = (newimg*<span class="number">255</span>).astype(<span class="string">'uint8'</span>)</span><br><span class="line">    <span class="keyword">return</span> newimg</span><br></pre></td></tr></table></figure></p>
+<p>由于不同的病人之间的spacing（单位：mpp,毫米/像素）是不同的，这意味着物理世界中同样大小的面积在图像中表示不一样。所以我们认为应该要统一spacing。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">resample</span><span class="params">(imgs, spacing, new_spacing,order=<span class="number">2</span>)</span>:</span></span><br><span class="line">    <span class="keyword">if</span> len(imgs.shape)==<span class="number">3</span>:</span><br><span class="line">        new_shape = np.round(imgs.shape * spacing / new_spacing)</span><br><span class="line">        true_spacing = spacing * imgs.shape / new_shape</span><br><span class="line">        resize_factor = new_shape / imgs.shape</span><br><span class="line">        imgs = zoom(imgs, resize_factor, mode = <span class="string">'nearest'</span>,order=order)</span><br><span class="line">        <span class="keyword">return</span> imgs, true_spacing</span><br><span class="line">    <span class="keyword">elif</span> len(imgs.shape)==<span class="number">4</span>:</span><br><span class="line">        n = imgs.shape[<span class="number">-1</span>]</span><br><span class="line">        newimg = []</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(n):</span><br><span class="line">            slice = imgs[:,:,:,i]</span><br><span class="line">            newslice,true_spacing = resample(slice,spacing,new_spacing)</span><br><span class="line">            newimg.append(newslice)</span><br><span class="line">        newimg=np.transpose(np.array(newimg),[<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">0</span>])</span><br><span class="line">        <span class="keyword">return</span> newimg,true_spacing</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">raise</span> ValueError(<span class="string">'wrong shape'</span>)</span><br></pre></td></tr></table></figure></p>
+<p>这部分代码就是将HU值转化成灰度值（从[-1200,600]到[0，255]），并应用上上一步求的mask，把非uROI的部分用170填充。除此之外，由腐蚀操作多出来的面积如果灰度值大于210，被认为是骨头的部分，也被填充成170.通过resample统一到一样的分辨率后，再用计算到的extendbox将ROI截取出来, 这里通过extendbox截取的时候是x\y\z三个方向上都有进行截取。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">bone_thresh = <span class="number">210</span></span><br><span class="line">pad_value = <span class="number">170</span></span><br><span class="line">im[np.isnan(im)]=<span class="number">-2000</span></span><br><span class="line">sliceim = lumTrans(im)</span><br><span class="line">sliceim = sliceim*dilatedMask+pad_value*(<span class="number">1</span>-dilatedMask).astype(<span class="string">'uint8'</span>)</span><br><span class="line">bones = sliceim*extramask&gt;bone_thresh</span><br><span class="line">sliceim[bones] = pad_value</span><br><span class="line">sliceim1,_ = resample(sliceim,spacing,resolution,order=<span class="number">1</span>)</span><br><span class="line">sliceim2 = sliceim1[extendbox[<span class="number">0</span>,<span class="number">0</span>]:extendbox[<span class="number">0</span>,<span class="number">1</span>],</span><br><span class="line">            extendbox[<span class="number">1</span>,<span class="number">0</span>]:extendbox[<span class="number">1</span>,<span class="number">1</span>],</span><br><span class="line">            extendbox[<span class="number">2</span>,<span class="number">0</span>]:extendbox[<span class="number">2</span>,<span class="number">1</span>]]</span><br><span class="line">sliceim = sliceim2[np.newaxis,...]</span><br></pre></td></tr></table></figure></p>
+<p>灰度值转化且统一分辨率后裁剪前：<br><img src="origin.png" alt="origin"><br>裁剪后：<br><img src="cut.jpg" alt="cut"><br>由于经过裁剪，总的slice数量不一样了，因此这两张图不是一一对应的。</p>
+<h1 id="预处理：处理annatations"><a href="#预处理：处理annatations" class="headerlink" title="预处理：处理annatations"></a>预处理：处理annatations</h1><p>上面一个步骤完成后，图像也就处理好了，但还需要把这些数据的label给对应到新的位置上来。<br>这部分函数是将世界坐标（ground truth的坐标）映射到图像的voxel坐标系上。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">worldToVoxelCoord</span><span class="params">(worldCoord, origin, spacing)</span>:</span></span><br><span class="line">    stretchedVoxelCoord = np.absolute(worldCoord - origin)</span><br><span class="line">    voxelCoord = stretchedVoxelCoord / spacing</span><br><span class="line">    <span class="keyword">return</span> voxelCoord</span><br></pre></td></tr></table></figure></p>
+<p>由于slice是经过缩放、裁剪的，因此labe也需要经过缩放裁剪。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">this_annos = np.copy(annos[annos[:,<span class="number">0</span>]==case_name])</span><br><span class="line">label = []</span><br><span class="line"><span class="keyword">if</span> len(this_annos) &gt; <span class="number">0</span>:</span><br><span class="line">    <span class="keyword">for</span> c <span class="keyword">in</span> this_annos:</span><br><span class="line">        pos = worldToVoxelCoord(c[<span class="number">1</span>:<span class="number">4</span>][::<span class="number">-1</span>], origin=origin, spacing=spacing)</span><br><span class="line">        label.append(np.concatenate([pos,[c[<span class="number">4</span>]/spacing[<span class="number">1</span>]]]))</span><br><span class="line">label = np.array(label)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> len(label) == <span class="number">0</span>:</span><br><span class="line">    label2 = np.array([<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>])</span><br><span class="line"><span class="keyword">else</span>:</span><br><span class="line">    label2 = np.copy(label)</span><br><span class="line">    label2[:<span class="number">3</span>] = label2[:<span class="number">3</span>]*np.expand_dims(spacing,<span class="number">1</span>)/np.expand_dims(resolution,<span class="number">1</span>)</span><br><span class="line">    label2[<span class="number">3</span>] = label2[<span class="number">3</span>]*spacing[<span class="number">1</span>]/resolution[<span class="number">1</span>]</span><br><span class="line">    label2[:<span class="number">3</span>] = label2[:<span class="number">3</span>]-np.expand_dims(extendbox[:,<span class="number">0</span>],<span class="number">1</span>)</span><br><span class="line">    label2 = label2[:<span class="number">4</span>].T</span><br><span class="line">print(label2)</span><br><span class="line">np.save(os.path.join(ans_path,case_name+<span class="string">'_label.npy'</span>),label2)</span><br></pre></td></tr></table></figure></p>
+<p>裁剪前的结节位置：<br><img src="origin_label.png" alt="origin_label"><br>裁剪后的结节位置：<br><img src="cut_label.png" alt="cut_label"></p>
+<p>预处理部分就先介绍到这里，下一步将分析如何将数据送入网络。（这其中就涉及到了数据增强等操作啦。）</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/CT-Research/" rel="tag"># CT, Research</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/Reading-A-Few-Useful-Things-to-Konw-about-Machine-Learning/" rel="next" title="Paper | 一些关于机器学习你需要知道的事">
+                <i class="fa fa-chevron-left"></i> Paper | 一些关于机器学习你需要知道的事
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/luna-augment/" rel="prev" title="Practice | LUNA16：网络数据的准备">
+                Practice | LUNA16：网络数据的准备 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          
+            <p class="site-author-name" itemprop="name">Yanhong Zeng</p>
+            <p class="site-description motion-element" itemprop="description"></p>
+        </div>
+
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+            
+              <a href="/archives">
+            
+                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              
+                <span class="site-state-item-count">1</span>
+                <span class="site-state-item-name">tags</span>
+              
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#预处理：提取肺部组织"><span class="nav-number">1.</span> <span class="nav-text">预处理：提取肺部组织</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#每张slice单独分析"><span class="nav-number">1.1.</span> <span class="nav-text">每张slice单独分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#所有slices立体分析"><span class="nav-number">1.2.</span> <span class="nav-text">所有slices立体分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#单独生成左右肺mask"><span class="nav-number">1.3.</span> <span class="nav-text">单独生成左右肺mask</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#预处理：Apply-Mask"><span class="nav-number">2.</span> <span class="nav-text">预处理：Apply Mask</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#预处理：处理annatations"><span class="nav-number">3.</span> <span class="nav-text">预处理：处理annatations</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Yanhong Zeng</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" href="https://hexo.io">Hexo</a></div>
+
+  <span class="post-meta-divider">|</span>
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.2</div>
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>

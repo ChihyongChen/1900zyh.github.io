@@ -1,0 +1,120 @@
+This is XeTeX, Version 3.14159265-2.6-0.99998 (TeX Live 2017) (preloaded format=xelatex 2017.12.3)  19 MAY 2018 19:26
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**resume.tex -recorder
+(./resume.tex
+LaTeX2e <2017-04-15>
+Babel <3.10> and hyphenation patterns for 84 language(s) loaded.
+(/usr/local/texlive/2017/texmf-dist/tex/latex/base/article.cls
+Document Class: article 2014/09/29 v1.4h Standard LaTeX document class
+(/usr/local/texlive/2017/texmf-dist/tex/latex/base/size11.clo
+File: size11.clo 2014/09/29 v1.4h Standard LaTeX file (size option)
+)
+\c@part=\count79
+\c@section=\count80
+\c@subsection=\count81
+\c@subsubsection=\count82
+\c@paragraph=\count83
+\c@subparagraph=\count84
+\c@figure=\count85
+\c@table=\count86
+\abovecaptionskip=\skip41
+\belowcaptionskip=\skip42
+\bibindent=\dimen102
+)
+(/usr/local/texlive/2017/texmf-dist/tex/latex/preprint/fullpage.sty
+Package: fullpage 1999/02/23 1.1 (PWD)
+\FP@margin=\skip43
+)
+(/usr/local/texlive/2017/texmf-dist/tex/latex/graphics/color.sty
+Package: color 2016/07/10 v1.1e Standard LaTeX Color (DPC)
+
+(/usr/local/texlive/2017/texmf-dist/tex/latex/graphics-cfg/color.cfg
+File: color.cfg 2016/01/02 v1.6 sample color configuration
+)
+Package color Info: Driver file: xetex.def on input line 147.
+
+(/usr/local/texlive/2017/texmf-dist/tex/latex/graphics-def/xetex.def
+File: xetex.def 2016/07/11 v4.10 LaTeX color/graphics driver for XeTeX (L3/RRM/
+JK)
+))
+(./resume.aux)
+\openout1 = `resume.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 31.
+LaTeX Font Info:    ... okay on input line 31.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 31.
+LaTeX Font Info:    ... okay on input line 31.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 31.
+LaTeX Font Info:    ... okay on input line 31.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 31.
+LaTeX Font Info:    ... okay on input line 31.
+LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 31.
+LaTeX Font Info:    ... okay on input line 31.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 31.
+LaTeX Font Info:    ... okay on input line 31.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 31.
+LaTeX Font Info:    ... okay on input line 31.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <10.95> on input line 33.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <8> on input line 33.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <6> on input line 33.
+ (./education.tex
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <12> on input line 2.
+
+Overfull \hbox (6.0pt too wide) in paragraph at lines 2--3
+[][][][][][][]  
+ []
+
+) (./recent.tex
+Overfull \hbox (6.0pt too wide) in paragraph at lines 1--2
+[][][][][][]  
+ []
+
+) (./research_interest.tex
+Overfull \hbox (6.0pt too wide) in paragraph at lines 2--3
+[][][][][][][]  
+ []
+
+) (./publication.tex
+Overfull \hbox (6.0pt too wide) in paragraph at lines 1--2
+[][][][][][]  
+ []
+
+) (./projects.tex
+Overfull \hbox (6.0pt too wide) in paragraph at lines 2--3
+[][][][][][][]  
+ []
+
+) (./skill.tex
+Overfull \hbox (6.0pt too wide) in paragraph at lines 2--3
+[][][][][][][]  
+ []
+
+) (./award.tex
+Overfull \hbox (6.0pt too wide) in paragraph at lines 2--3
+[][][][][][]  
+ []
+
+) (./ta.tex
+Overfull \hbox (6.0pt too wide) in paragraph at lines 1--2
+[][][][][][][]  
+ []
+
+) [1
+
+] (./resume.aux) ) 
+Here is how much of TeX's memory you used:
+ 522 strings out of 493005
+ 6678 string characters out of 6134596
+ 71397 words of memory out of 5000000
+ 4524 multiletter control sequences out of 15000+600000
+ 7332 words of font info for 31 fonts, out of 8000000 for 9000
+ 1348 hyphenation exceptions out of 8191
+ 24i,7n,22p,236b,199s stack positions out of 5000i,500n,10000p,200000b,80000s
+
+Output written on resume.pdf (1 page).

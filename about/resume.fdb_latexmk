@@ -1,0 +1,22 @@
+# Fdb version 3
+["pdflatex"] 1526729173 "resume.tex" "resume.pdf" "resume" 1526729173
+  "/usr/local/texlive/2017/texmf-dist/tex/latex/base/article.cls" 1480098821 19821 310da678527a7dfe2a02c88af38079b7 ""
+  "/usr/local/texlive/2017/texmf-dist/tex/latex/base/size11.clo" 1480098821 8308 f91506bb4df6d8527331f7bbeaf0e63c ""
+  "/usr/local/texlive/2017/texmf-dist/tex/latex/graphics-cfg/color.cfg" 1480098830 1213 620bba36b25224fa9b7e1ccb4ecb76fd ""
+  "/usr/local/texlive/2017/texmf-dist/tex/latex/graphics-def/xetex.def" 1485129666 21966 ed359f6c6c81a1c024b31a1bd86d1b4a ""
+  "/usr/local/texlive/2017/texmf-dist/tex/latex/graphics/color.sty" 1480098830 7031 4ca2945c73eec4e726c0da188fbbf50f ""
+  "/usr/local/texlive/2017/texmf-dist/tex/latex/preprint/fullpage.sty" 1480098837 2789 05b418f78b224ec872f5b11081138605 ""
+  "award.tex" 1526728829 365 51bcd7258bc53f29a0d136a58091d14f ""
+  "education.tex" 1526723208 571 c10405677ad18c3948bc08dbfb21c952 ""
+  "projects.tex" 1526729031 456 f22ab658df81de21a693bf6efc88991d ""
+  "publication.tex" 1526728936 187 de289482a0f0961609176d2570c977d5 ""
+  "recent.tex" 1526728906 111 83f697e5647b2dd9e82bd5961e6c59b6 ""
+  "research_interest.tex" 1526723902 112 a4a26e135399b4c254ee964f670af110 ""
+  "resume.aux" 1526729173 8 a94a2480d3289e625eea47cd1b285758 ""
+  "resume.tex" 1526729170 1460 60ae6765ec67511ff4b68687a9f62ccb ""
+  "skill.tex" 1526729066 209 cd49c0c75f1133568dd543973854e0c4 ""
+  "ta.tex" 1526728813 124 cc6ac9e59e7e83478005381c1bc74040 ""
+  (generated)
+  "resume.log"
+  "resume.pdf"
+  "resume.aux"

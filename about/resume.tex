@@ -1,0 +1,54 @@
+\documentclass[letterpaper,11pt]{article}
+
+%-----------------------------------------------------------
+
+\usepackage[empty]{fullpage}
+\usepackage{color}
+\definecolor{mygrey}{gray}{0.80}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Adjust margins to 0.5in on all sides
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1.0in}
+\addtolength{\topmargin}{-0.5in}
+\addtolength{\textheight}{1.0in}
+
+%-----------------------------------------------------------
+%Custom commands
+\newcommand{\resitem}[1]{\item #1 \vspace{-2pt}}
+\newcommand{\resheading}[1]{{\large \colorbox{mygrey}{\begin{minipage}{\textwidth}{\textbf{#1 \vphantom{p\^{E}}}}\end{minipage}}}}
+\newcommand{\ressubheading}[4]{
+\begin{tabular*}{7.0in}{l@{\extracolsep{\fill}}r}
+		\textbf{#1} & #2 \\
+		\textit{#3} & \textit{#4} \\
+\end{tabular*}\vspace{-6pt}}
+%-----------------------------------------------------------
+
+
+\begin{document}
+
+\begin{tabular*}{7.5in}{l@{\extracolsep{\fill}}r@{\extracolsep{0.1in}}l}
+\textbf{\large Yanhong Zeng}  & (+86)176-6508-6319 & (tel)\\
+\  &  zengyh7@mail2.sysu.edu.cn & (email)\\
+\  & https://github.com/1900zyh & (gitHub)\\
+% \  & https://1900zyh.github.io & (blog)\\
+\end{tabular*}
+\\
+\vspace{0.1in}
+
+% =============================================
+\input{education}
+\input{recent}
+\input{research_interest}
+\input{publication}
+\input{projects}
+\input{skill}
+\input{award}
+\input{ta}
+
+\end{document}
+
+

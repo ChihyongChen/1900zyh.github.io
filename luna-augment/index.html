@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2" />
+
+
+
+
+
+
+<meta name="description" content="经过上一篇blog的介绍，我们只是从原始的mhd数据进行ROI处理，并统一分辨率。经过这样一系列的操作，我们得到的是每个病例不同大小的数据，而且数据集很小（1800+个结节）。如果为我们的3DCNN准备数据集，并构建网络进行训练是本文将要展开的事情。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Practice | LUNA16：网络数据的准备">
+<meta property="og:url" content="https://1900zyh.github.io/luna-augment/index.html">
+<meta property="og:site_name" content="1900zengyh">
+<meta property="og:description" content="经过上一篇blog的介绍，我们只是从原始的mhd数据进行ROI处理，并统一分辨率。经过这样一系列的操作，我们得到的是每个病例不同大小的数据，而且数据集很小（1800+个结节）。如果为我们的3DCNN准备数据集，并构建网络进行训练是本文将要展开的事情。">
+<meta property="og:locale" content="en">
+<meta property="og:image" content="https://1900zyh.github.io/luna-augment/crop_128_1.png">
+<meta property="og:image" content="https://1900zyh.github.io/luna-augment/augment.png">
+<meta property="og:updated_time" content="2018-05-06T09:43:53.318Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Practice | LUNA16：网络数据的准备">
+<meta name="twitter:description" content="经过上一篇blog的介绍，我们只是从原始的mhd数据进行ROI处理，并统一分辨率。经过这样一系列的操作，我们得到的是每个病例不同大小的数据，而且数据集很小（1800+个结节）。如果为我们的3DCNN准备数据集，并构建网络进行训练是本文将要展开的事情。">
+<meta name="twitter:image" content="https://1900zyh.github.io/luna-augment/crop_128_1.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://1900zyh.github.io/luna-augment/"/>
+
+
+
+
+
+  <title>Practice | LUNA16：网络数据的准备 | 1900zengyh</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">1900zengyh</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/resume.pdf" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-recent">
+          <a href="/Recent/index.html" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-heartbeat"></i> <br />
+            
+            Recent
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://1900zyh.github.io/luna-augment/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Yanhong Zeng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="1900zengyh">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Practice | LUNA16：网络数据的准备</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-09-04T21:20:55+08:00">
+                2017-09-04
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/CT/" itemprop="url" rel="index">
+                    <span itemprop="name">CT</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>经过上一篇blog的介绍，我们只是从原始的mhd数据进行ROI处理，并统一分辨率。<br>经过这样一系列的操作，我们得到的是每个病例不同大小的数据，而且数据集很小（1800+个结节）。<br>如果为我们的3DCNN准备数据集，并构建网络进行训练是本文将要展开的事情。<br><a id="more"></a><br>这部分的内容主要是：准备数据集、装载数据、搭建网络并开始训练。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">margin = <span class="number">32</span></span><br><span class="line">sidelen = <span class="number">144</span></span><br><span class="line">config1[<span class="string">'datadir'</span>] = prep_result_path</span><br><span class="line">split_comber = SplitComb(sidelen,config1[<span class="string">'max_stride'</span>],config1[<span class="string">'stride'</span>],margin,pad_value= config1[<span class="string">'pad_value'</span>])</span><br><span class="line"></span><br><span class="line">dataset = DataBowl3Detector(testsplit,config1,phase=<span class="string">'test'</span>,split_comber=split_comber)</span><br><span class="line">test_loader = DataLoader(dataset,batch_size = <span class="number">1</span>,</span><br><span class="line">    shuffle = <span class="keyword">False</span>,num_workers = <span class="number">32</span>,pin_memory=<span class="keyword">False</span>,collate_fn =collate)</span><br><span class="line"></span><br><span class="line">test_detect(test_loader, nod_net, get_pbb, bbox_result_path,config1,n_gpu=config_submit[<span class="string">'n_gpu'</span>])</span><br></pre></td></tr></table></figure></p>
+<h1 id="准备数据集"><a href="#准备数据集" class="headerlink" title="准备数据集"></a>准备数据集</h1><p>SplitComb是一个类，类的主要参数有：side_len=144, max_stride=16, stride=4, margin=32, pad_value=170<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SplitComb</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self,side_len,max_stride,stride,margin,pad_value)</span>:</span></span><br><span class="line">        self.side_len = side_len</span><br><span class="line">        self.max_stride = max_stride</span><br><span class="line">        self.stride = stride</span><br><span class="line">        self.margin = margin</span><br><span class="line">        self.pad_value = pad_value</span><br></pre></td></tr></table></figure></p>
+<p>DataBowl3Detector是继承torch的一个类Dataset。关于torch的教程，可以参考<a href="https://github.com/soumith/cvpr2015/blob/master/Deep%20Learning%20with%20Torch.ipynb" target="_blank" rel="noopener">这里</a>。在DataBowl3Detector中定义好我们自己的数据集，就可以通过torch的DataLoader来进行数据的加载。需要注意的是，从raw_data中采样的时候，为了提高直径比较大的结节的准确率，在生成数据集的时候，源代码是将小于等于6mm的结节去掉，然后将大于6mm的结节采样，大于30mm的采样率是3倍，大于40mm的采样率是7倍。我们在对数据预处理的时候对luna16这个数据集进行统计，我们发现……，因此我们调整这个采样率为……。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">DataBowl3Detector</span><span class="params">(Dataset)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, split, config, phase = <span class="string">'train'</span>,split_comber=None)</span>:</span></span><br><span class="line">        <span class="keyword">assert</span>(phase == <span class="string">'train'</span> <span class="keyword">or</span> phase == <span class="string">'val'</span> <span class="keyword">or</span> phase == <span class="string">'test'</span>)</span><br><span class="line">        self.phase = phase</span><br><span class="line">        self.max_stride = config[<span class="string">'max_stride'</span>]       </span><br><span class="line">        self.stride = config[<span class="string">'stride'</span>]       </span><br><span class="line">        sizelim = config[<span class="string">'sizelim'</span>]/config[<span class="string">'reso'</span>]</span><br><span class="line">        sizelim2 = config[<span class="string">'sizelim2'</span>]/config[<span class="string">'reso'</span>]</span><br><span class="line">        sizelim3 = config[<span class="string">'sizelim3'</span>]/config[<span class="string">'reso'</span>]</span><br><span class="line">        self.blacklist = config[<span class="string">'blacklist'</span>]</span><br><span class="line">        self.isScale = config[<span class="string">'aug_scale'</span>]</span><br><span class="line">        self.r_rand = config[<span class="string">'r_rand_crop'</span>]</span><br><span class="line">        self.augtype = config[<span class="string">'augtype'</span>]</span><br><span class="line">        data_dir = config[<span class="string">'datadir'</span>]</span><br><span class="line">        self.pad_value = config[<span class="string">'pad_value'</span>]</span><br><span class="line">        self.split_comber = split_comber</span><br><span class="line">        self.filenames = split</span><br><span class="line">        </span><br><span class="line">        labels = []</span><br><span class="line">        <span class="keyword">for</span> idx <span class="keyword">in</span> split:</span><br><span class="line">            l = np.load(open(idx.replace(<span class="string">'cut'</span>, <span class="string">'label'</span>), <span class="string">'rb'</span>))</span><br><span class="line">            labels.append(l)</span><br><span class="line"></span><br><span class="line">        self.sample_bboxes = labels</span><br><span class="line">        <span class="keyword">if</span> self.phase!=<span class="string">'test'</span>:</span><br><span class="line">            self.bboxes = []</span><br><span class="line">            <span class="keyword">for</span> i, l <span class="keyword">in</span> enumerate(labels):</span><br><span class="line">                <span class="keyword">if</span> len(l.shape) &gt; <span class="number">1</span>:</span><br><span class="line">                    <span class="keyword">for</span> t <span class="keyword">in</span> l: <span class="comment"># z, x, y, c</span></span><br><span class="line">                        <span class="keyword">if</span> t[<span class="number">3</span>]&gt;sizelim:</span><br><span class="line">                            self.bboxes.append([np.concatenate([[i],t])])</span><br><span class="line">                        <span class="keyword">if</span> t[<span class="number">3</span>]&gt;sizelim2:</span><br><span class="line">                            self.bboxes+=[[np.concatenate([[i],t])]]*<span class="number">2</span></span><br><span class="line">                        <span class="keyword">if</span> t[<span class="number">3</span>]&gt;sizelim3:</span><br><span class="line">                            self.bboxes+=[[np.concatenate([[i],t])]]*<span class="number">4</span></span><br><span class="line">            self.bboxes = np.concatenate(self.bboxes,axis = <span class="number">0</span>)</span><br><span class="line">        self.crop = Crop(config)</span><br><span class="line">        self.label_mapping = LabelMapping(config, self.phase)</span><br></pre></td></tr></table></figure></p>
+<p>在上面这段代码中，我们注意到有两个类：<code>Crop</code>和<code>LabelMapping</code>。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Crop</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, config)</span>:</span></span><br><span class="line">        self.crop_size = config[<span class="string">'crop_size'</span>]</span><br><span class="line">        self.bound_size = config[<span class="string">'bound_size'</span>]</span><br><span class="line">        self.stride = config[<span class="string">'stride'</span>]</span><br><span class="line">        self.pad_value = config[<span class="string">'pad_value'</span>]</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LabelMapping</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, config, phase)</span>:</span></span><br><span class="line">        self.stride = np.array(config[<span class="string">'stride'</span>])</span><br><span class="line">        self.num_neg = int(config[<span class="string">'num_neg'</span>])</span><br><span class="line">        self.th_neg = config[<span class="string">'th_neg'</span>]</span><br><span class="line">        self.anchors = np.asarray(config[<span class="string">'anchors'</span>])</span><br><span class="line">        self.phase = phase</span><br><span class="line">        <span class="keyword">if</span> phase == <span class="string">'train'</span>:</span><br><span class="line">            self.th_pos = config[<span class="string">'th_pos_train'</span>]</span><br><span class="line">        <span class="keyword">elif</span> phase == <span class="string">'val'</span>:</span><br><span class="line">            self.th_pos = config[<span class="string">'th_pos_val'</span>]</span><br></pre></td></tr></table></figure>
+<p>在pytorch中，继承<code>DataSet</code>的子类，都需要重写<code>__len__()</code>函数和<code>__getitem__()</code>函数.<br>前者是为了支持对数据集大小的查询,后者是为了支持索引.<br>由于在训练的过程中，数据集中的70%是包含有结节的部分,也就是ground truth的长度,而另外30%是从空白地方截取出来的,因此整个数据集的大小就是<code>len(self.bboxes)/(1-self.r_rand)</code>.<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">DataBowl3Detector</span><span class="params">(Dataset)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__len__</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">if</span> self.phase == <span class="string">'train'</span>:</span><br><span class="line">            <span class="keyword">return</span> len(self.bboxes)/(<span class="number">1</span>-self.r_rand)</span><br><span class="line">        <span class="keyword">elif</span> self.phase ==<span class="string">'val'</span>:</span><br><span class="line">            <span class="keyword">return</span> len(self.bboxes)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">return</span> len(self.filenames)</span><br></pre></td></tr></table></figure></p>
+<p>对数据的处理分为训练阶段和测试阶段(这里对索引bboxes长度的就是30%的空白patch)<br>在训练阶段,在<code>__getitem__()</code>方法中,在返回结果要对数据进行<code>crop</code>操作和<code>augment</code>操作.<br>而对应的label也要随着图像的变换做相应的变换.<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">DataBowl3Detector</span><span class="params">(Dataset)</span>:</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">__getitem__</span><span class="params">(self, idx, split=None)</span>:</span></span><br><span class="line">        t = time.time()</span><br><span class="line">        np.random.seed(int(str(t%<span class="number">1</span>)[<span class="number">2</span>:<span class="number">7</span>]))<span class="comment">#seed according to time</span></span><br><span class="line">        isRandomImg  = <span class="keyword">False</span></span><br><span class="line">        <span class="keyword">if</span> self.phase != <span class="string">'test'</span>:</span><br><span class="line">            <span class="keyword">if</span> idx&gt;=len(self.bboxes):</span><br><span class="line">                isRandom = <span class="keyword">True</span></span><br><span class="line">                idx = idx%len(self.bboxes)</span><br><span class="line">                isRandomImg = np.random.randint(<span class="number">2</span>)</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                isRandom = <span class="keyword">False</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            isRandom = <span class="keyword">False</span></span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> self.phase != <span class="string">'test'</span>:</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> isRandomImg:</span><br><span class="line">                bbox = self.bboxes[idx]</span><br><span class="line">                filename = self.filenames[int(bbox[<span class="number">0</span>])]</span><br><span class="line">                imgs = np.load(filename)[<span class="number">0</span>]</span><br><span class="line">                bboxes = self.sample_bboxes[int(bbox[<span class="number">0</span>])]</span><br><span class="line">                isScale = self.augtype[<span class="string">'scale'</span>] <span class="keyword">and</span> (self.phase==<span class="string">'train'</span>)</span><br><span class="line">                sample, target, bboxes, coord = self.crop(imgs, bbox[<span class="number">1</span>:], bboxes,isScale,isRandom)</span><br><span class="line">                <span class="keyword">if</span> self.phase==<span class="string">'train'</span> <span class="keyword">and</span> <span class="keyword">not</span> isRandom:</span><br><span class="line">                     sample, target, bboxes, coord = augment(sample, target, bboxes, coord,</span><br><span class="line">                        ifflip = self.augtype[<span class="string">'flip'</span>], ifrotate=self.augtype[<span class="string">'rotate'</span>], ifswap = self.augtype[<span class="string">'swap'</span>])</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                randimid = np.random.randint(len(self.filenames))</span><br><span class="line">                filename = self.filenames[randimid]</span><br><span class="line">                imgs = np.load(filename)[<span class="number">0</span>]</span><br><span class="line">                bboxes = self.sample_bboxes[randimid]</span><br><span class="line">                isScale = self.augtype[<span class="string">'scale'</span>] <span class="keyword">and</span> (self.phase==<span class="string">'train'</span>)</span><br><span class="line">                sample, target, bboxes, coord = self.crop(imgs, [], bboxes,isScale=<span class="keyword">False</span>,isRand=<span class="keyword">True</span>)</span><br><span class="line">            label = self.label_mapping(sample.shape[<span class="number">1</span>:], target, bboxes)</span><br><span class="line">            sample = sample.astype(np.float32)</span><br><span class="line">            sample = (sample.astype(np.float32)<span class="number">-128</span>)/<span class="number">128</span></span><br><span class="line">            <span class="keyword">return</span> torch.from_numpy(sample), torch.from_numpy(label), coord</span><br><span class="line"> </span><br><span class="line">            <span class="keyword">assert</span> np.all(nzhw==nzhw2)</span><br><span class="line">            imgs = (imgs.astype(np.float32)<span class="number">-128</span>)/<span class="number">128</span></span><br><span class="line">            <span class="keyword">return</span> torch.from_numpy(imgs.astype(np.float32)), bboxes, torch.from_numpy(coord2.astype(np.float32)), np.array(nzhw)</span><br></pre></td></tr></table></figure></p>
+<h2 id="裁剪数据"><a href="#裁剪数据" class="headerlink" title="裁剪数据"></a>裁剪数据</h2><p>target表示的是当前索引的结节的位置信息,bboxes表示的是当前索引的图像的所有的结节位置信息.<br>scaleRange是计算出的一个将图像随机缩放的一个区间.<br>在预处理部分将数据统一到一个物理分辨率上,但在训练网络的时候,为了增强数据,又将数据在[0.75, 1.25]的范围内进行缩放处理.<br>如果不需要缩放,则图像直接用默认的[128, 128, 128]进行裁剪.如果需要缩放,则计算出对应的缩放率和对应的缩放大小,先进行裁剪,再在最后一步裁剪到统一的[128, 128, 128].<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Crop</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__call__</span><span class="params">(self, imgs, target, bboxes,isScale=False,isRand=False)</span>:</span></span><br><span class="line">        <span class="keyword">if</span> isScale:</span><br><span class="line">            radiusLim = [<span class="number">8.</span>,<span class="number">100.</span>]</span><br><span class="line">            scaleLim = [<span class="number">0.75</span>,<span class="number">1.25</span>]</span><br><span class="line">            scaleRange = [np.min([np.max([(radiusLim[<span class="number">0</span>]/target[<span class="number">3</span>]),scaleLim[<span class="number">0</span>]]),<span class="number">1</span>])</span><br><span class="line">                         ,np.max([np.min([(radiusLim[<span class="number">1</span>]/target[<span class="number">3</span>]),scaleLim[<span class="number">1</span>]]),<span class="number">1</span>])]</span><br><span class="line">            scale = np.random.rand()*(scaleRange[<span class="number">1</span>]-scaleRange[<span class="number">0</span>])+scaleRange[<span class="number">0</span>]</span><br><span class="line">            crop_size = (np.array(self.crop_size).astype(<span class="string">'float'</span>)/scale).astype(<span class="string">'int'</span>)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            crop_size=self.crop_size</span><br><span class="line">        bound_size = self.bound_size</span><br><span class="line">        target = np.copy(target)</span><br><span class="line">        bboxes = np.copy(bboxes)</span><br></pre></td></tr></table></figure></p>
+<p>裁剪patch的时候不要求结节在patch的正中心,而是满足与边界的margin大于12pixels的任意区域中.(除非结节太大了).<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line">start = []</span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">3</span>):</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> isRand:</span><br><span class="line">        r = target[<span class="number">3</span>] / <span class="number">2</span></span><br><span class="line">        s = np.floor(target[i] - r)+ <span class="number">1</span> - bound_size</span><br><span class="line">        e = np.ceil (target[i] + r)+ <span class="number">1</span> + bound_size - crop_size[i] </span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        s = np.max([imgs.shape[i+<span class="number">1</span>]-crop_size[i]/<span class="number">2</span>,imgs.shape[i+<span class="number">1</span>]/<span class="number">2</span>+bound_size])</span><br><span class="line">        e = np.min([crop_size[i]/<span class="number">2</span>,              imgs.shape[i+<span class="number">1</span>]/<span class="number">2</span>-bound_size])</span><br><span class="line">        target = np.array([np.nan,np.nan,np.nan,np.nan])</span><br><span class="line">    <span class="keyword">if</span> s&gt;e:</span><br><span class="line">        start.append(np.random.randint(e,s))<span class="comment">#!</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        start.append(int(target[i])-crop_size[i]/<span class="number">2</span>+np.random.randint(-bound_size/<span class="number">2</span>,bound_size/<span class="number">2</span>))</span><br><span class="line">normstart = np.array(start).astype(<span class="string">'float32'</span>)/np.array(imgs.shape[<span class="number">1</span>:])<span class="number">-0.5</span></span><br><span class="line">normsize = np.array(crop_size).astype(<span class="string">'float32'</span>)/np.array(imgs.shape[<span class="number">1</span>:])</span><br><span class="line">xx,yy,zz = np.meshgrid(np.linspace(normstart[<span class="number">0</span>],normstart[<span class="number">0</span>]+normsize[<span class="number">0</span>],self.crop_size[<span class="number">0</span>]/self.stride),</span><br><span class="line">                   np.linspace(normstart[<span class="number">1</span>],normstart[<span class="number">1</span>]+normsize[<span class="number">1</span>],self.crop_size[<span class="number">1</span>]/self.stride),</span><br><span class="line">                   np.linspace(normstart[<span class="number">2</span>],normstart[<span class="number">2</span>]+normsize[<span class="number">2</span>],self.crop_size[<span class="number">2</span>]/self.stride),indexing =<span class="string">'ij'</span>)</span><br><span class="line">coord = np.concatenate([xx[np.newaxis,...], yy[np.newaxis,...],zz[np.newaxis,:]],<span class="number">0</span>).astype(<span class="string">'float32'</span>)</span><br><span class="line"></span><br><span class="line">pad = []</span><br><span class="line">pad.append([<span class="number">0</span>,<span class="number">0</span>])</span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">3</span>):</span><br><span class="line">    leftpad = max(<span class="number">0</span>,-start[i])</span><br><span class="line">    rightpad = max(<span class="number">0</span>,start[i]+crop_size[i]-imgs.shape[i+<span class="number">1</span>])</span><br><span class="line">    pad.append([leftpad,rightpad])</span><br><span class="line">crop = imgs[:,</span><br><span class="line">    max(start[<span class="number">0</span>],<span class="number">0</span>):min(start[<span class="number">0</span>] + crop_size[<span class="number">0</span>],imgs.shape[<span class="number">1</span>]),</span><br><span class="line">    max(start[<span class="number">1</span>],<span class="number">0</span>):min(start[<span class="number">1</span>] + crop_size[<span class="number">1</span>],imgs.shape[<span class="number">2</span>]),</span><br><span class="line">    max(start[<span class="number">2</span>],<span class="number">0</span>):min(start[<span class="number">2</span>] + crop_size[<span class="number">2</span>],imgs.shape[<span class="number">3</span>])]</span><br><span class="line">crop = np.pad(crop,pad,<span class="string">'constant'</span>,constant_values =self.pad_value)</span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">3</span>):</span><br><span class="line">    target[i] = target[i] - start[i] </span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(len(bboxes)):</span><br><span class="line">    <span class="keyword">for</span> j <span class="keyword">in</span> range(<span class="number">3</span>):</span><br><span class="line">        bboxes[i][j] = bboxes[i][j] - start[j] </span><br><span class="line">        </span><br><span class="line"><span class="keyword">if</span> isScale:</span><br><span class="line">    <span class="keyword">with</span> warnings.catch_warnings():</span><br><span class="line">        warnings.simplefilter(<span class="string">"ignore"</span>)</span><br><span class="line">        crop = zoom(crop,[<span class="number">1</span>,scale,scale,scale],order=<span class="number">1</span>)</span><br><span class="line">    newpad = self.crop_size[<span class="number">0</span>]-crop.shape[<span class="number">1</span>:][<span class="number">0</span>]</span><br><span class="line">    <span class="keyword">if</span> newpad&lt;<span class="number">0</span>:</span><br><span class="line">        crop = crop[:,:-newpad,:-newpad,:-newpad]</span><br><span class="line">    <span class="keyword">elif</span> newpad&gt;<span class="number">0</span>:</span><br><span class="line">        pad2 = [[<span class="number">0</span>,<span class="number">0</span>],[<span class="number">0</span>,newpad],[<span class="number">0</span>,newpad],[<span class="number">0</span>,newpad]]</span><br><span class="line">        crop = np.pad(crop,pad2,<span class="string">'constant'</span>,constant_values =self.pad_value)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">4</span>):</span><br><span class="line">        target[i] = target[i]*scale</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(len(bboxes)):</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> range(<span class="number">4</span>):</span><br><span class="line">            bboxes[i][j] = bboxes[i][j]*scale</span><br><span class="line"><span class="keyword">return</span> crop, target, bboxes, coord</span><br></pre></td></tr></table></figure></p>
+<p>在这里,crop是[1, 128, 128, 128]的图像,target是当前索引的位置信息,bboxes是当前图像的位置信息.<br>如下图就是裁剪之后的[128, 128]的一个结果:<br><img src="crop_128_1.png" alt="crop_result"></p>
+<h1 id="数据增强"><a href="#数据增强" class="headerlink" title="数据增强"></a>数据增强</h1><p>这部分数据增强的操作主要有:旋转,翻转,以及x,y,z坐标轴的调换.paper中说再多的操作对效果提升没有显著的帮助,因此只使用了翻转.<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">augment</span><span class="params">(sample, target, bboxes, coord, ifflip = True, ifrotate=True, ifswap = True)</span>:</span></span><br><span class="line">    <span class="keyword">if</span> ifrotate:</span><br><span class="line">        validrot = <span class="keyword">False</span></span><br><span class="line">        counter = <span class="number">0</span></span><br><span class="line">        <span class="keyword">while</span> <span class="keyword">not</span> validrot:</span><br><span class="line">            newtarget = np.copy(target)</span><br><span class="line">            angle1 = (np.random.rand()<span class="number">-0.5</span>)*<span class="number">20</span></span><br><span class="line">            size = np.array(sample.shape[<span class="number">2</span>:<span class="number">4</span>]).astype(<span class="string">'float'</span>)</span><br><span class="line">            rotmat = np.array([[np.cos(angle1/<span class="number">180</span>*np.pi),-np.sin(angle1/<span class="number">180</span>*np.pi)],[np.sin(angle1/<span class="number">180</span>*np.pi),np.cos(angle1/<span class="number">180</span>*np.pi)]])</span><br><span class="line">            newtarget[<span class="number">1</span>:<span class="number">3</span>] = np.dot(rotmat,target[<span class="number">1</span>:<span class="number">3</span>]-size/<span class="number">2</span>)+size/<span class="number">2</span></span><br><span class="line">            <span class="keyword">if</span> np.all(newtarget[:<span class="number">3</span>]&gt;target[<span class="number">3</span>]) <span class="keyword">and</span> np.all(newtarget[:<span class="number">3</span>]&lt; np.array(sample.shape[<span class="number">1</span>:<span class="number">4</span>])-newtarget[<span class="number">3</span>]):</span><br><span class="line">                validrot = <span class="keyword">True</span></span><br><span class="line">                target = newtarget</span><br><span class="line">                sample = rotate(sample,angle1,axes=(<span class="number">2</span>,<span class="number">3</span>),reshape=<span class="keyword">False</span>)</span><br><span class="line">                coord = rotate(coord,angle1,axes=(<span class="number">2</span>,<span class="number">3</span>),reshape=<span class="keyword">False</span>)</span><br><span class="line">                <span class="keyword">for</span> box <span class="keyword">in</span> bboxes:</span><br><span class="line">                    box[<span class="number">1</span>:<span class="number">3</span>] = np.dot(rotmat,box[<span class="number">1</span>:<span class="number">3</span>]-size/<span class="number">2</span>)+size/<span class="number">2</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                counter += <span class="number">1</span></span><br><span class="line">                <span class="keyword">if</span> counter ==<span class="number">3</span>:</span><br><span class="line">                    <span class="keyword">break</span></span><br><span class="line">    <span class="keyword">if</span> ifflip:</span><br><span class="line"><span class="comment">#         flipid = np.array([np.random.randint(2),np.random.randint(2),np.random.randint(2)])*2-1</span></span><br><span class="line">        flipid = np.array([<span class="number">1</span>,np.random.randint(<span class="number">2</span>),np.random.randint(<span class="number">2</span>)])*<span class="number">2</span><span class="number">-1</span></span><br><span class="line">        sample = np.ascontiguousarray(sample[:,::flipid[<span class="number">0</span>],::flipid[<span class="number">1</span>],::flipid[<span class="number">2</span>]])</span><br><span class="line">        coord = np.ascontiguousarray(coord[:,::flipid[<span class="number">0</span>],::flipid[<span class="number">1</span>],::flipid[<span class="number">2</span>]])</span><br><span class="line">        <span class="keyword">for</span> ax <span class="keyword">in</span> range(<span class="number">3</span>):</span><br><span class="line">            <span class="keyword">if</span> flipid[ax]==<span class="number">-1</span>:</span><br><span class="line">                target[ax] = np.array(sample.shape[ax+<span class="number">1</span>])-target[ax]</span><br><span class="line">                bboxes[:,ax]= np.array(sample.shape[ax+<span class="number">1</span>])-bboxes[:,ax]  </span><br><span class="line">    <span class="keyword">if</span> ifswap:</span><br><span class="line">        <span class="keyword">if</span> sample.shape[<span class="number">1</span>]==sample.shape[<span class="number">2</span>] <span class="keyword">and</span> sample.shape[<span class="number">1</span>]==sample.shape[<span class="number">3</span>]:</span><br><span class="line">            axisorder = np.random.permutation(<span class="number">3</span>)</span><br><span class="line">            sample = np.transpose(sample,np.concatenate([[<span class="number">0</span>],axisorder+<span class="number">1</span>]))</span><br><span class="line">            coord = np.transpose(coord,np.concatenate([[<span class="number">0</span>],axisorder+<span class="number">1</span>]))</span><br><span class="line">            target[:<span class="number">3</span>] = target[:<span class="number">3</span>][axisorder]</span><br><span class="line">            bboxes[:,:<span class="number">3</span>] = bboxes[:,:<span class="number">3</span>][:,axisorder]</span><br><span class="line">    <span class="keyword">return</span> sample, target, bboxes, coord</span><br></pre></td></tr></table></figure></p>
+<p>处理的效果如下图所示:<br><img src="augment.png" alt="augment_results"></p>
+<h1 id="正负样本平衡"><a href="#正负样本平衡" class="headerlink" title="正负样本平衡"></a>正负样本平衡</h1><p>label mapping实现的是一种online hard negative mining的技术.目的是为了改善数据集中正负样本比例不均衡的问题.<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LabelMapping</span><span class="params">(object)</span>:</span>    </span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__call__</span><span class="params">(self, input_size, target, bboxes)</span>:</span></span><br><span class="line">        stride = self.stride</span><br><span class="line">        num_neg = self.num_neg</span><br><span class="line">        th_neg = self.th_neg</span><br><span class="line">        anchors = self.anchors</span><br><span class="line">        th_pos = self.th_pos</span><br><span class="line">        struct = generate_binary_structure(<span class="number">3</span>,<span class="number">1</span>)      </span><br><span class="line">        </span><br><span class="line">        output_size = []</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">3</span>):</span><br><span class="line">            <span class="keyword">assert</span>(input_size[i] % stride == <span class="number">0</span>)</span><br><span class="line">            output_size.append(input_size[i] / stride)</span><br><span class="line">        </span><br><span class="line">        label = np.zeros(output_size + [len(anchors), <span class="number">5</span>], np.float32)</span><br><span class="line">        offset = ((stride.astype(<span class="string">'float'</span>)) - <span class="number">1</span>) / <span class="number">2</span></span><br><span class="line">        oz = np.arange(offset, offset + stride * (output_size[<span class="number">0</span>] - <span class="number">1</span>) + <span class="number">1</span>, stride)</span><br><span class="line">        oh = np.arange(offset, offset + stride * (output_size[<span class="number">1</span>] - <span class="number">1</span>) + <span class="number">1</span>, stride)</span><br><span class="line">        ow = np.arange(offset, offset + stride * (output_size[<span class="number">2</span>] - <span class="number">1</span>) + <span class="number">1</span>, stride)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> bbox <span class="keyword">in</span> bboxes:</span><br><span class="line">            <span class="keyword">for</span> i, anchor <span class="keyword">in</span> enumerate(anchors):</span><br><span class="line">                iz, ih, iw = select_samples(bbox, anchor, th_neg, oz, oh, ow)</span><br><span class="line">                label[iz, ih, iw, i, <span class="number">0</span>] = <span class="number">1</span></span><br><span class="line">                label[:,:,:, i, <span class="number">0</span>] = binary_dilation(label[:,:,:, i, <span class="number">0</span>].astype(<span class="string">'bool'</span>),structure=struct,iterations=<span class="number">1</span>).astype(<span class="string">'float32'</span>)</span><br><span class="line">        label = label<span class="number">-1</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> self.phase == <span class="string">'train'</span> <span class="keyword">and</span> self.num_neg &gt; <span class="number">0</span>:</span><br><span class="line">            neg_z, neg_h, neg_w, neg_a = np.where(label[:, :, :, :, <span class="number">0</span>] == <span class="number">-1</span>)</span><br><span class="line">            neg_idcs = random.sample(range(len(neg_z)), min(num_neg, len(neg_z)))</span><br><span class="line">            neg_z, neg_h, neg_w, neg_a = neg_z[neg_idcs], neg_h[neg_idcs], neg_w[neg_idcs], neg_a[neg_idcs]</span><br><span class="line">            label[:, :, :, :, <span class="number">0</span>] = <span class="number">0</span></span><br><span class="line">            label[neg_z, neg_h, neg_w, neg_a, <span class="number">0</span>] = <span class="number">-1</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> np.isnan(target[<span class="number">0</span>]):</span><br><span class="line">            <span class="keyword">return</span> label</span><br><span class="line">        iz, ih, iw, ia = [], [], [], []</span><br><span class="line">        <span class="keyword">for</span> i, anchor <span class="keyword">in</span> enumerate(anchors):</span><br><span class="line">            iiz, iih, iiw = select_samples(target, anchor, th_pos, oz, oh, ow)</span><br><span class="line">            iz.append(iiz)</span><br><span class="line">            ih.append(iih)</span><br><span class="line">            iw.append(iiw)</span><br><span class="line">            ia.append(i * np.ones((len(iiz),), np.int64))</span><br><span class="line">        iz = np.concatenate(iz, <span class="number">0</span>)</span><br><span class="line">        ih = np.concatenate(ih, <span class="number">0</span>)</span><br><span class="line">        iw = np.concatenate(iw, <span class="number">0</span>)</span><br><span class="line">        ia = np.concatenate(ia, <span class="number">0</span>)</span><br><span class="line">        flag = <span class="keyword">True</span> </span><br><span class="line">        <span class="keyword">if</span> len(iz) == <span class="number">0</span>:</span><br><span class="line">            pos = []</span><br><span class="line">            <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">3</span>):</span><br><span class="line">                pos.append(max(<span class="number">0</span>, int(np.round((target[i] - offset) / stride))))</span><br><span class="line">            idx = np.argmin(np.abs(np.log(target[<span class="number">3</span>] / anchors)))</span><br><span class="line">            pos.append(idx)</span><br><span class="line">            flag = <span class="keyword">False</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            idx = random.sample(range(len(iz)), <span class="number">1</span>)[<span class="number">0</span>]</span><br><span class="line">            pos = [iz[idx], ih[idx], iw[idx], ia[idx]]</span><br><span class="line">        dz = (target[<span class="number">0</span>] - oz[pos[<span class="number">0</span>]]) / anchors[pos[<span class="number">3</span>]]</span><br><span class="line">        dh = (target[<span class="number">1</span>] - oh[pos[<span class="number">1</span>]]) / anchors[pos[<span class="number">3</span>]]</span><br><span class="line">        dw = (target[<span class="number">2</span>] - ow[pos[<span class="number">2</span>]]) / anchors[pos[<span class="number">3</span>]]</span><br><span class="line">        dd = np.log(target[<span class="number">3</span>] / anchors[pos[<span class="number">3</span>]])</span><br><span class="line">        label[pos[<span class="number">0</span>], pos[<span class="number">1</span>], pos[<span class="number">2</span>], pos[<span class="number">3</span>], :] = [<span class="number">1</span>, dz, dh, dw, dd]</span><br><span class="line">        <span class="keyword">return</span> label</span><br></pre></td></tr></table></figure></p>
+<p>label mapping的实现方法具体是通过将当前loss下难以筛选辨识的false positive加入到训练数据中.<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">select_samples</span><span class="params">(bbox, anchor, th, oz, oh, ow)</span>:</span></span><br><span class="line">    z, h, w, d = bbox</span><br><span class="line">    max_overlap = min(d, anchor)</span><br><span class="line">    min_overlap = np.power(max(d, anchor), <span class="number">3</span>) * th / max_overlap / max_overlap</span><br><span class="line">    <span class="keyword">if</span> min_overlap &gt; max_overlap:</span><br><span class="line">        <span class="keyword">return</span> np.zeros((<span class="number">0</span>,), np.int64), np.zeros((<span class="number">0</span>,), np.int64), np.zeros((<span class="number">0</span>,), np.int64)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        s = z - <span class="number">0.5</span> * np.abs(d - anchor) - (max_overlap - min_overlap)</span><br><span class="line">        e = z + <span class="number">0.5</span> * np.abs(d - anchor) + (max_overlap - min_overlap)</span><br><span class="line">        mz = np.logical_and(oz &gt;= s, oz &lt;= e)</span><br><span class="line">        iz = np.where(mz)[<span class="number">0</span>]</span><br><span class="line">        s = h - <span class="number">0.5</span> * np.abs(d - anchor) - (max_overlap - min_overlap)</span><br><span class="line">        e = h + <span class="number">0.5</span> * np.abs(d - anchor) + (max_overlap - min_overlap)</span><br><span class="line">        mh = np.logical_and(oh &gt;= s, oh &lt;= e)</span><br><span class="line">        ih = np.where(mh)[<span class="number">0</span>]</span><br><span class="line">        s = w - <span class="number">0.5</span> * np.abs(d - anchor) - (max_overlap - min_overlap)</span><br><span class="line">        e = w + <span class="number">0.5</span> * np.abs(d - anchor) + (max_overlap - min_overlap)</span><br><span class="line">        mw = np.logical_and(ow &gt;= s, ow &lt;= e)</span><br><span class="line">        iw = np.where(mw)[<span class="number">0</span>]</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> len(iz) == <span class="number">0</span> <span class="keyword">or</span> len(ih) == <span class="number">0</span> <span class="keyword">or</span> len(iw) == <span class="number">0</span>:</span><br><span class="line">            <span class="keyword">return</span> np.zeros((<span class="number">0</span>,), np.int64), np.zeros((<span class="number">0</span>,), np.int64), np.zeros((<span class="number">0</span>,), np.int64)</span><br><span class="line">        </span><br><span class="line">        lz, lh, lw = len(iz), len(ih), len(iw)</span><br><span class="line">        iz = iz.reshape((<span class="number">-1</span>, <span class="number">1</span>, <span class="number">1</span>))</span><br><span class="line">        ih = ih.reshape((<span class="number">1</span>, <span class="number">-1</span>, <span class="number">1</span>))</span><br><span class="line">        iw = iw.reshape((<span class="number">1</span>, <span class="number">1</span>, <span class="number">-1</span>))</span><br><span class="line">        iz = np.tile(iz, (<span class="number">1</span>, lh, lw)).reshape((<span class="number">-1</span>))</span><br><span class="line">        ih = np.tile(ih, (lz, <span class="number">1</span>, lw)).reshape((<span class="number">-1</span>))</span><br><span class="line">        iw = np.tile(iw, (lz, lh, <span class="number">1</span>)).reshape((<span class="number">-1</span>))</span><br><span class="line">        centers = np.concatenate([</span><br><span class="line">            oz[iz].reshape((<span class="number">-1</span>, <span class="number">1</span>)),</span><br><span class="line">            oh[ih].reshape((<span class="number">-1</span>, <span class="number">1</span>)),</span><br><span class="line">            ow[iw].reshape((<span class="number">-1</span>, <span class="number">1</span>))], axis = <span class="number">1</span>)</span><br><span class="line">        r0 = anchor / <span class="number">2</span></span><br><span class="line">        s0 = centers - r0</span><br><span class="line">        e0 = centers + r0</span><br><span class="line">        r1 = d / <span class="number">2</span></span><br><span class="line">        s1 = bbox[:<span class="number">3</span>] - r1</span><br><span class="line">        s1 = s1.reshape((<span class="number">1</span>, <span class="number">-1</span>))</span><br><span class="line">        e1 = bbox[:<span class="number">3</span>] + r1</span><br><span class="line">        e1 = e1.reshape((<span class="number">1</span>, <span class="number">-1</span>))</span><br><span class="line">        </span><br><span class="line">        overlap = np.maximum(<span class="number">0</span>, np.minimum(e0, e1) - np.maximum(s0, s1))</span><br><span class="line">        intersection = overlap[:, <span class="number">0</span>] * overlap[:, <span class="number">1</span>] * overlap[:, <span class="number">2</span>]</span><br><span class="line">        union = anchor * anchor * anchor + d * d * d - intersection</span><br><span class="line">        iou = intersection / union</span><br><span class="line">        mask = iou &gt;= th</span><br><span class="line">        iz = iz[mask]</span><br><span class="line">        ih = ih[mask]</span><br><span class="line">        iw = iw[mask]</span><br><span class="line">        <span class="keyword">return</span> iz, ih, iw</span><br></pre></td></tr></table></figure></p>
+<p>当处于测试阶段时,DataBowl3Detector需要将原数据进行切割.<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">imgs = np.load(self.filenames[idx])</span><br><span class="line">bboxes = self.sample_bboxes[idx]</span><br><span class="line">nz, nh, nw = imgs.shape[<span class="number">1</span>:]</span><br><span class="line">pz = int(np.ceil(float(nz) / self.stride)) * self.stride</span><br><span class="line">ph = int(np.ceil(float(nh) / self.stride)) * self.stride</span><br><span class="line">pw = int(np.ceil(float(nw) / self.stride)) * self.stride</span><br><span class="line">imgs = np.pad(imgs, [[<span class="number">0</span>,<span class="number">0</span>],[<span class="number">0</span>, pz - nz], [<span class="number">0</span>, ph - nh], [<span class="number">0</span>, pw - nw]], <span class="string">'constant'</span>,constant_values = self.pad_value)</span><br><span class="line">xx,yy,zz = np.meshgrid(np.linspace(<span class="number">-0.5</span>,<span class="number">0.5</span>,imgs.shape[<span class="number">1</span>]/self.stride),</span><br><span class="line">                       np.linspace(<span class="number">-0.5</span>,<span class="number">0.5</span>,imgs.shape[<span class="number">2</span>]/self.stride),</span><br><span class="line">                       np.linspace(<span class="number">-0.5</span>,<span class="number">0.5</span>,imgs.shape[<span class="number">3</span>]/self.stride),indexing =<span class="string">'ij'</span>)</span><br><span class="line">coord = np.concatenate([xx[np.newaxis,...], yy[np.newaxis,...],zz[np.newaxis,:]],<span class="number">0</span>).astype(<span class="string">'float32'</span>)</span><br><span class="line">imgs, nzhw = self.split_comber.split(imgs)</span><br><span class="line">coord2, nzhw2 = self.split_comber.split(coord,</span><br><span class="line">                                       side_len = self.split_comber.side_len/self.stride,</span><br><span class="line">                                       max_stride = self.split_comber.max_stride/self.stride,</span><br><span class="line">                                       margin = self.split_comber.margin/self.stride)</span><br></pre></td></tr></table></figure></p>
+<p>SplitComb类主要有两个函数。split操作对数据进行padding，以及z\x\y轴上的处理。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SplitComb</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">split</span><span class="params">(self, data, side_len = None, max_stride = None, margin = None)</span>:</span></span><br><span class="line">        <span class="keyword">if</span> side_len==<span class="keyword">None</span>:</span><br><span class="line">            side_len = self.side_len</span><br><span class="line">        <span class="keyword">if</span> max_stride == <span class="keyword">None</span>:</span><br><span class="line">            max_stride = self.max_stride</span><br><span class="line">        <span class="keyword">if</span> margin == <span class="keyword">None</span>:</span><br><span class="line">            margin = self.margin</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">assert</span>(side_len &gt; margin)</span><br><span class="line">        <span class="keyword">assert</span>(side_len % max_stride == <span class="number">0</span>)</span><br><span class="line">        <span class="keyword">assert</span>(margin % max_stride == <span class="number">0</span>)</span><br><span class="line">        splits = []</span><br><span class="line">        _, z, h, w = data.shape</span><br><span class="line">        nz = int(np.ceil(float(z) / side_len))</span><br><span class="line">        nh = int(np.ceil(float(h) / side_len))</span><br><span class="line">        nw = int(np.ceil(float(w) / side_len))</span><br><span class="line">        nzhw = [nz,nh,nw]</span><br><span class="line">        self.nzhw = nzhw</span><br><span class="line">        pad = [ [<span class="number">0</span>, <span class="number">0</span>],</span><br><span class="line">                [margin, nz * side_len - z + margin],</span><br><span class="line">                [margin, nh * side_len - h + margin],</span><br><span class="line">                [margin, nw * side_len - w + margin]]</span><br><span class="line">        data = np.pad(data, pad, <span class="string">'edge'</span>)</span><br><span class="line">        <span class="keyword">for</span> iz <span class="keyword">in</span> range(nz):</span><br><span class="line">            <span class="keyword">for</span> ih <span class="keyword">in</span> range(nh):</span><br><span class="line">                <span class="keyword">for</span> iw <span class="keyword">in</span> range(nw):</span><br><span class="line">                    sz = iz * side_len</span><br><span class="line">                    ez = (iz + <span class="number">1</span>) * side_len + <span class="number">2</span> * margin</span><br><span class="line">                    sh = ih * side_len</span><br><span class="line">                    eh = (ih + <span class="number">1</span>) * side_len + <span class="number">2</span> * margin</span><br><span class="line">                    sw = iw * side_len</span><br><span class="line">                    ew = (iw + <span class="number">1</span>) * side_len + <span class="number">2</span> * margin</span><br><span class="line">                    split = data[np.newaxis, :, sz:ez, sh:eh, sw:ew]</span><br><span class="line">                    splits.append(split)</span><br><span class="line">        splits = np.concatenate(splits, <span class="number">0</span>)</span><br><span class="line">        <span class="keyword">return</span> splits,nzhw</span><br></pre></td></tr></table></figure></p>
+<p>切割结束后,需要结合所有的patch计算出最终的预测结果.<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">combine</span><span class="params">(self, output, nzhw = None, side_len=None, stride=None, margin=None)</span>:</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> side_len==<span class="keyword">None</span>:</span><br><span class="line">        side_len = self.side_len</span><br><span class="line">    <span class="keyword">if</span> stride == <span class="keyword">None</span>:</span><br><span class="line">        stride = self.stride</span><br><span class="line">    <span class="keyword">if</span> margin == <span class="keyword">None</span>:</span><br><span class="line">        margin = self.margin</span><br><span class="line">    <span class="keyword">if</span> nzhw <span class="keyword">is</span> <span class="keyword">None</span>:</span><br><span class="line">        nz = self.nz</span><br><span class="line">        nh = self.nh</span><br><span class="line">        nw = self.nw</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        nz,nh,nw = nzhw</span><br><span class="line">    <span class="keyword">assert</span>(side_len % stride == <span class="number">0</span>)</span><br><span class="line">    <span class="keyword">assert</span>(margin % stride == <span class="number">0</span>)</span><br><span class="line">    side_len /= stride</span><br><span class="line">    margin /= stride</span><br><span class="line">    splits = []</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(len(output)):</span><br><span class="line">        splits.append(output[i])</span><br><span class="line">    output = <span class="number">-1000000</span> * np.ones((</span><br><span class="line">        nz * side_len,</span><br><span class="line">        nh * side_len,</span><br><span class="line">        nw * side_len,</span><br><span class="line">        splits[<span class="number">0</span>].shape[<span class="number">3</span>],</span><br><span class="line">        splits[<span class="number">0</span>].shape[<span class="number">4</span>]), np.float32)</span><br><span class="line">    idx = <span class="number">0</span></span><br><span class="line">    <span class="keyword">for</span> iz <span class="keyword">in</span> range(nz):</span><br><span class="line">        <span class="keyword">for</span> ih <span class="keyword">in</span> range(nh):</span><br><span class="line">            <span class="keyword">for</span> iw <span class="keyword">in</span> range(nw):</span><br><span class="line">                sz = iz * side_len</span><br><span class="line">                ez = (iz + <span class="number">1</span>) * side_len</span><br><span class="line">                sh = ih * side_len</span><br><span class="line">                eh = (ih + <span class="number">1</span>) * side_len</span><br><span class="line">                sw = iw * side_len</span><br><span class="line">                ew = (iw + <span class="number">1</span>) * side_len</span><br><span class="line"></span><br><span class="line">                split = splits[idx][margin:margin + side_len, margin:margin + side_len, margin:margin + side_len]</span><br><span class="line">                output[sz:ez, sh:eh, sw:ew] = split</span><br><span class="line">                idx += <span class="number">1</span></span><br><span class="line">    <span class="keyword">return</span> output</span><br></pre></td></tr></table></figure></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/LUNA16-Practice/" rel="next" title="Practiec | LUNA16：数据预处理">
+                <i class="fa fa-chevron-left"></i> Practiec | LUNA16：数据预处理
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          
+            <p class="site-author-name" itemprop="name">Yanhong Zeng</p>
+            <p class="site-description motion-element" itemprop="description"></p>
+        </div>
+
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+            
+              <a href="/archives">
+            
+                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-name">posts</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              
+                <span class="site-state-item-count">1</span>
+                <span class="site-state-item-name">tags</span>
+              
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#准备数据集"><span class="nav-number">1.</span> <span class="nav-text">准备数据集</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#裁剪数据"><span class="nav-number">1.1.</span> <span class="nav-text">裁剪数据</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#数据增强"><span class="nav-number">2.</span> <span class="nav-text">数据增强</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#正负样本平衡"><span class="nav-number">3.</span> <span class="nav-text">正负样本平衡</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Yanhong Zeng</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" href="https://hexo.io">Hexo</a></div>
+
+  <span class="post-meta-divider">|</span>
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.2</div>
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>
